@@ -564,8 +564,26 @@ function render(){
     $("view").innerHTML = '<div class="card" style="margin-top:16px"><div class="empty">위에서 조사할 풍습을 골라요.<br>출생 · 백일 · 첫돌 · 관례 · 혼례 · 회갑 · 장례</div></div>';
     return;
   }
-  if (S.tab === "compare") return renderCompare();
+  if (S.tab === "compare"){
+    $("view").innerHTML = '<div class="card" style="margin-top:16px"><span class="spin"></span> 확인하는 중…</div>';
+    return getCompareOpen().then(function(map){
+      if (S.tab !== "compare") return;
+      if (map[S.student.cls]) renderCompare();
+      else $("view").innerHTML = '<div class="card" style="margin-top:16px"><div class="empty">🔒 두 시대 비교하기는 아직 닫혀 있어요.<br>7차시에 선생님이 열어 줄 거예요. 지금은 ① 오늘날, ② 옛날 조사를 해요.</div></div>';
+    });
+  }
   renderResearch(S.tab);
+}
+
+/* 비교하기 탭 열기/닫기 (반별, settings 테이블에 저장) */
+var OPEN_KEY = "cc_compare_open";
+function getCompareOpen(){
+  return sb("settings?key=eq."+OPEN_KEY+"&select=value").then(function(rows){
+    try{ return rows && rows[0] ? JSON.parse(rows[0].value) || {} : {}; }catch(e){ return {}; }
+  }).catch(function(){ return {}; });
+}
+function setCompareOpen(map){
+  return sb("settings?on_conflict=key", {method:"POST", body:[{key:OPEN_KEY, value:JSON.stringify(map)}], prefer:"resolution=merge-duplicates"});
 }
 
 /* ================= ①② 조사하기 ================= */
@@ -966,7 +984,12 @@ function renderTeacher(){
   var chips = CUSTOMS.map(function(c){ return '<button class="chip'+(c===T.custom?" on":"")+'" data-c="'+esc(c)+'">'+esc(c)+'</button>'; }).join(" ");
   $("teacher").innerHTML =
     '<div class="card" style="margin-top:20px">'+
-      '<h3>선생님 메뉴 · 풍습별 사진 관리 <button class="btn ghost sm" id="btnTBack" style="margin-left:auto">학생 화면으로</button></h3>'+
+      '<h3>선생님 메뉴 · ③ 두 시대 비교하기 열기/닫기 <button class="btn ghost sm" id="btnTBack" style="margin-left:auto">학생 화면으로</button></h3>'+
+      '<p class="src-note">닫혀 있으면 학생은 비교하기 탭을 볼 수 없어요. 7차시에 우리 반만 열어 주세요.</p>'+
+      '<div id="openArea" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span class="spin"></span></div>'+
+    '</div>'+
+    '<div class="card" style="margin-top:16px">'+
+      '<h3>풍습별 사진 관리</h3>'+
       '<p class="src-note">여기에 올린 사진이 학생 화면에서 가장 먼저 보여요. 풍습과 시대(옛날/오늘날)를 골라 올려 주세요.</p>'+
       '<div class="chips" style="margin-top:12px"><span class="lbl">풍습</span>'+chips+
         '<div class="searchbox"><input id="tOther" placeholder="다른 풍습 (예: 설날)"><button class="btn sm" id="tOtherBtn">선택</button></div></div>'+
@@ -984,7 +1007,28 @@ function renderTeacher(){
   each("#teacher .seg button", function(b){ b.onclick = function(){ T.era = b.getAttribute("data-e"); renderTeacher(); }; });
   $("btnTBack").onclick = function(){ $("teacher").classList.add("hide"); if (S.student) showMain(); else $("loginBox").classList.remove("hide"); };
   $("tFiles").onchange = function(){ teacherUpload(this); };
+  drawOpenSwitches();
   drawTeacherList();
+}
+function drawOpenSwitches(){
+  getCompareOpen().then(function(map){
+    var h = "";
+    for (var i=1;i<=6;i++){
+      var k = "3-"+i, on = !!map[k];
+      h += '<button class="btn '+(on?"green":"ghost")+'" data-k="'+k+'">3학년 '+i+'반 · '+(on?"열림 🔓":"닫힘 🔒")+'</button>';
+    }
+    $("openArea").innerHTML = h;
+    each("#openArea [data-k]", function(b){
+      b.onclick = function(){
+        var k = b.getAttribute("data-k");
+        b.disabled = true;
+        getCompareOpen().then(function(cur){
+          cur[k] = !cur[k];
+          return setCompareOpen(cur).then(function(){ toast(k.replace("3-","3학년 ")+"반 비교하기를 "+(cur[k]?"열었어요.":"닫았어요.")); });
+        }).catch(function(){ toast("바꾸지 못했어요."); }).then(drawOpenSwitches);
+      };
+    });
+  });
 }
 function drawTeacherList(){
   getTeacherPhotos(T.custom, T.era, true).then(function(list){
