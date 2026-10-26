@@ -275,6 +275,21 @@ var BASE = {
   }
 };
 
+/* '궁금한 점 물어보기' 예시 질문 (풍습·시대별) */
+var ASK_EX = {
+  "출생": {past:"왜 대문에 금줄을 걸었을까요?", today:"요즘에는 아기가 태어나면 어떻게 축하하나요?"},
+  "백일": {past:"왜 백일 떡을 이웃 100집에 나누었을까요?", today:"요즘 백일상에는 무엇을 올리나요?"},
+  "첫돌": {past:"돌잡이 물건에는 어떤 뜻이 있었을까요?", today:"요즘 돌잡이에는 어떤 물건이 있나요?"},
+  "관례": {past:"관례를 하면 왜 갓을 썼을까요?", today:"성년의 날에는 무엇을 하나요?"},
+  "혼례": {past:"전통 혼례에서 왜 나무 기러기를 주었을까요?", today:"폐백은 무엇이고 왜 지금도 할까요?"},
+  "회갑": {past:"옛날에는 왜 60세 생일을 크게 잔치했을까요?", today:"요즘에는 왜 회갑 잔치를 크게 하지 않을까요?"},
+  "장례": {past:"옛날에는 왜 마을 사람들이 함께 상여를 멨을까요?", today:"요즘 장례식장에서는 어떻게 위로하나요?"}
+};
+function askExample(c, era){
+  if (ASK_EX[c]) return ASK_EX[c][era];
+  return era === "past" ? "옛날에는 "+c+"에 무엇을 했고, 왜 그랬을까요?" : "요즘에는 "+c+"에 무엇을 하나요?";
+}
+
 /* 문장 틀 */
 var FRAMES = {
   today:["오늘날에는 ○○에서 ○○을/를 해요.","○○을/를 바라는 마음이 담겨 있어요.","요즘에는 ○○도 해요."],
@@ -609,7 +624,7 @@ function renderResearch(era){
         '</div>'+
         '<div id="extraArea"></div>'+
         '<h4 class="sub">궁금한 점 물어보기</h4>'+
-        '<div class="ask"><input id="inAsk" placeholder="예) '+(isPast?"왜 대문에 금줄을 걸었을까요?":"요즘 돌잡이에는 어떤 물건이 있나요?")+'"><button class="btn green sm" id="btnAsk">물어보기</button></div>'+
+        '<div class="ask"><input id="inAsk" placeholder="예) '+esc(askExample(c, era))+'"><button class="btn green sm" id="btnAsk">물어보기</button></div>'+
         '<div id="askArea"></div>'+
       '</div>'+
       '<div class="card">'+
