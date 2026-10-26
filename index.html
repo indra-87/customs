@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
     --paper:#f6efe0; --paper2:#fffaf0; --ink:#2b2622; --muted:#6f655b; --line:#e2d6bf;
@@ -18,9 +19,9 @@
   body{font-family:'Noto Sans KR',sans-serif;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.6;min-height:100vh}
   button,input,textarea,select{font:inherit;color:inherit}
   button{cursor:pointer}
+  a{color:inherit}
   .wrap{max-width:1180px;margin:0 auto;padding:0 16px 48px}
 
-  /* header */
   header{background:var(--ink);color:#fff;padding:14px 0;position:sticky;top:0;z-index:20}
   header .wrap{display:flex;align-items:center;gap:12px;padding-bottom:0;flex-wrap:wrap}
   .logo{font-family:'Gowun Dodum',sans-serif;font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px}
@@ -32,21 +33,23 @@
   .status{font-size:13px;padding:5px 12px;border-radius:999px;background:#555;white-space:nowrap}
   .status.ok{background:var(--green)} .status.err{background:var(--red)} .status.wait{background:#7a6a4f}
 
-  /* login */
   .login{max-width:460px;margin:48px auto;background:var(--paper2);border:1px solid var(--line);border-radius:22px;padding:32px;box-shadow:var(--shadow);text-align:center}
   .login h2{font-family:'Gowun Dodum';font-size:26px;margin-bottom:6px}
   .login p{color:var(--muted);margin-bottom:22px}
   .login .row{display:flex;gap:10px;margin-bottom:12px}
   .login input,.login select{flex:1;padding:12px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;font-size:18px;min-width:0}
-  .btn{border:none;border-radius:12px;padding:11px 18px;font-weight:600;background:var(--ink);color:#fff;transition:transform .08s, opacity .2s}
+  .teacher-link{display:inline-block;margin-top:18px;background:none;border:none;color:var(--muted);text-decoration:underline;font-size:14px}
+
+  .btn{border:none;border-radius:12px;padding:11px 18px;font-weight:600;background:var(--ink);color:#fff;transition:transform .08s, opacity .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
   .btn:active{transform:scale(.97)}
   .btn:disabled{opacity:.45;cursor:not-allowed}
-  .btn.red{background:var(--red)} .btn.blue{background:var(--blue)} .btn.green{background:var(--green)}
+  .btn.red{background:var(--red)} .btn.blue{background:var(--blue)} .btn.green{background:var(--green)} .btn.gold{background:var(--gold)}
   .btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
-  .btn.big{width:100%;padding:14px;font-size:18px}
+  .btn.danger{background:transparent;color:var(--red);border:2px solid var(--red-soft)}
+  .btn.big{width:100%;padding:14px;font-size:18px;justify-content:center}
   .btn.sm{padding:7px 12px;font-size:14px;border-radius:10px}
+  .btn.xs{padding:3px 10px;font-size:12.5px;border-radius:8px}
 
-  /* tabs */
   .tabs{display:flex;gap:8px;margin:20px 0 14px;flex-wrap:wrap}
   .tab{flex:1;min-width:150px;border:2px solid var(--line);background:var(--paper2);border-radius:14px;padding:10px 12px;text-align:left}
   .tab b{display:block;font-size:17px}
@@ -54,7 +57,6 @@
   .tab.on{border-color:var(--ink);background:var(--ink);color:#fff}
   .tab.on span{color:#e9dfcf}
 
-  /* custom chips */
   .chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--paper2);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
   .chips .lbl{font-weight:600;margin-right:4px}
   .chip{border:2px solid var(--line);background:#fff;border-radius:999px;padding:6px 16px;font-size:16px}
@@ -63,11 +65,11 @@
   .searchbox{display:flex;gap:6px;margin-left:auto;flex:1;min-width:220px;max-width:340px}
   .searchbox input{flex:1;min-width:0;padding:8px 12px;border:2px solid var(--line);border-radius:999px;background:#fff}
 
-  /* layout */
   .grid2{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-top:16px}
   @media (max-width:860px){.grid2{grid-template-columns:1fr}}
   .card{background:var(--paper2);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
-  .card h3{font-family:'Gowun Dodum';font-size:20px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .card h3{font-family:'Gowun Dodum';font-size:20px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .card h4.sub{font-family:'Gowun Dodum';font-size:17px;margin:18px 0 6px}
   .tag{font-size:12px;font-family:'Noto Sans KR';font-weight:600;padding:2px 10px;border-radius:999px}
   .tag.past{background:var(--gold-soft);color:#8a6416} .tag.today{background:var(--blue-soft);color:var(--blue)}
   .empty{color:var(--muted);text-align:center;padding:40px 10px}
@@ -77,49 +79,64 @@
   .info-block h4{font-size:14px;color:var(--muted);margin-bottom:2px}
   .src-note{font-size:12.5px;color:var(--muted);margin-top:4px}
 
-  .imgs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+  .imgs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px}
   .imgcard{background:#fff;border:2px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
   .imgcard.sel{border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
   .imgcard img{width:100%;height:140px;object-fit:cover;background:#eee;display:block}
   .imgcard .cap{font-size:11.5px;color:var(--muted);padding:6px 8px;line-height:1.35;flex:1;word-break:break-all}
   .imgcard button{border:none;border-top:1px solid var(--line);background:var(--paper2);padding:7px;font-size:13px;font-weight:600}
   .imgcard.sel button{background:var(--green);color:#fff}
+  .photo-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .filebtn{position:relative;overflow:hidden}
+  .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 
   .ask{display:flex;gap:6px;margin-top:6px}
   .ask input{flex:1;min-width:0;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:#fff}
-  .answer{background:var(--green-soft);border-radius:12px;padding:12px 14px;margin-top:10px;white-space:pre-wrap}
+  .answer{background:var(--green-soft);border-radius:12px;padding:12px 14px;margin-top:8px;white-space:pre-wrap;font-size:15px}
 
-  label.f{display:block;font-weight:600;margin:12px 0 4px}
+  label.f{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;font-weight:600;margin:14px 0 4px}
   label.f small{font-weight:400;color:var(--muted)}
   textarea,.inp{width:100%;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:#fff;resize:vertical}
-  textarea:focus,.inp:focus,input:focus{outline:none;border-color:var(--blue)}
-  .quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  textarea:focus,.inp:focus,input:focus,select:focus{outline:none;border-color:var(--blue)}
+  .quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
   .quick button{border:1px dashed var(--muted);background:transparent;border-radius:999px;padding:3px 10px;font-size:13px;color:var(--muted)}
+  .quick .ai{border:none;background:var(--green);color:#fff;font-weight:600}
   .picked{display:flex;gap:10px;align-items:center;background:#fff;border:2px dashed var(--line);border-radius:12px;padding:8px;margin-top:4px;min-height:64px}
   .picked img{width:84px;height:60px;object-fit:cover;border-radius:8px}
   .picked .t{font-size:12.5px;color:var(--muted);flex:1;word-break:break-all}
   .actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center}
   .saved{font-size:13px;color:var(--green);font-weight:600}
+  .danger-zone{margin-top:18px;padding-top:12px;border-top:1px dashed var(--line);display:flex;gap:8px;flex-wrap:wrap}
 
-  /* compare */
   .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch;margin-top:16px}
   @media (max-width:760px){.vs{grid-template-columns:1fr}.vs .mid{display:none}}
   .vs .side{background:var(--paper2);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
   .vs .side img{width:100%;height:180px;object-fit:cover;border-radius:10px;background:#eee;margin:8px 0}
   .vs .mid{display:grid;place-items:center;font-family:'Gowun Dodum';font-size:28px;color:var(--red)}
-  .vs .noimg{height:120px;display:grid;place-items:center;background:#f1ebde;border-radius:10px;color:var(--muted);margin:8px 0;font-size:14px}
+  .noimg{height:120px;display:grid;place-items:center;background:#f1ebde;border-radius:10px;color:var(--muted);margin:8px 0;font-size:14px}
   .frame{background:var(--gold-soft);border-radius:12px;padding:10px 14px;margin-top:6px;font-size:14px}
 
-  .preview{background:#fff;border:3px solid var(--ink);border-radius:18px;padding:18px;margin-top:6px}
-  .preview .ttl{font-family:'Gowun Dodum';font-size:24px;text-align:center;margin-bottom:10px}
-  .preview .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .preview .two div{border-radius:10px;padding:8px 10px;font-size:14px}
-  .preview .two .p{background:var(--gold-soft)} .preview .two .t{background:var(--blue-soft)}
-  .preview .row{border-top:1px dashed var(--line);padding:6px 0;font-size:14px}
-  .preview .row b{display:inline-block;min-width:96px}
-  .preview .foot{font-size:11.5px;color:var(--muted);margin-top:6px}
+  /* 풍습 비교 카드 */
+  .pcard{background:#fff;border:3px solid var(--ink);border-radius:18px;padding:18px;color:var(--ink)}
+  .pcard .ttl{font-family:'Gowun Dodum';font-size:24px;text-align:center;margin-bottom:12px}
+  .pcard .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pcard .two > div{border-radius:12px;padding:8px 10px;font-size:14px}
+  .pcard .two .p{background:var(--gold-soft)} .pcard .two .t{background:var(--blue-soft)}
+  .pcard .two img{width:100%;height:150px;object-fit:cover;border-radius:8px;display:block;margin:6px 0}
+  .pcard .two .ni{height:60px;display:grid;place-items:center;color:var(--muted);font-size:12px}
+  .pcard .row{border-top:1px dashed var(--line);padding:7px 0;font-size:14px;display:flex;gap:8px}
+  .pcard .row b{flex:0 0 96px}
+  .pcard .foot{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.45}
 
-  /* board */
+  .copylist{margin-top:10px}
+  .copylist .item{background:#fff;border-radius:12px;padding:8px 12px;margin-bottom:8px}
+  .copylist .item h5{font-size:13px;color:var(--muted);margin-bottom:4px}
+  .copylist .sent{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-top:1px dashed #efe6d5;font-size:14px}
+  .copylist .sent:first-of-type{border-top:none}
+  .copylist .sent span{flex:1}
+  details.box{margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+  details.box summary{font-weight:600;cursor:pointer}
+
   table.board{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;margin-top:10px}
   .board th,.board td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:center;font-size:15px}
   .board th{background:var(--ink);color:#fff;font-weight:600}
@@ -129,13 +146,17 @@
 
   .modal{position:fixed;inset:0;background:rgba(30,20,10,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
   .modal.show{display:flex}
-  .modal .box{background:var(--paper);border-radius:20px;max-width:680px;width:100%;max-height:90vh;overflow:auto;padding:18px}
+  .modal .box{background:var(--paper);border-radius:20px;max-width:720px;width:100%;max-height:92vh;overflow:auto;padding:18px}
 
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;opacity:0;transition:.25s;z-index:60;pointer-events:none}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:90vw;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .spin{display:inline-block;width:16px;height:16px;border:3px solid var(--line);border-top-color:var(--red);border-radius:50%;animation:sp 1s linear infinite;vertical-align:middle}
   @keyframes sp{to{transform:rotate(360deg)}}
   .hide{display:none!important}
+  .seg{display:inline-flex;border:2px solid var(--line);border-radius:12px;overflow:hidden}
+  .seg button{border:none;background:#fff;padding:8px 16px;font-weight:600}
+  .seg button.on{background:var(--ink);color:#fff}
+  #exportStage{position:fixed;left:-10000px;top:0;width:900px}
 </style>
 </head>
 <body>
@@ -151,7 +172,6 @@
 
 <div class="wrap">
 
-  <!-- 로그인 -->
   <section class="login" id="loginBox">
     <h2>탐험가 등록하기</h2>
     <p>반과 번호, 이름을 입력하면<br>5·6·7차시 조사 내용이 이어서 저장돼요.</p>
@@ -161,9 +181,9 @@
     </div>
     <div class="row"><input id="inName" placeholder="이름" aria-label="이름"></div>
     <button class="btn red big" id="btnLogin">탐험 시작하기</button>
+    <button class="teacher-link" id="btnTeacher">선생님 메뉴 (사진 관리)</button>
   </section>
 
-  <!-- 본문 -->
   <section id="main" class="hide">
     <div class="tabs" id="tabs">
       <button class="tab" data-tab="today"><b>① 오늘날 풍습 조사</b><span>5차시</span></button>
@@ -171,7 +191,6 @@
       <button class="tab" data-tab="compare"><b>③ 두 시대 비교하기</b><span>7차시</span></button>
       <button class="tab" data-tab="board"><b>④ 우리 반 모아보기</b><span>함께 보기</span></button>
     </div>
-
     <div class="chips" id="chipBar">
       <span class="lbl">풍습 고르기</span>
       <span id="chips"></span>
@@ -180,112 +199,141 @@
         <button class="btn sm" id="btnSearch">검색</button>
       </div>
     </div>
-
     <div id="view"></div>
   </section>
+
+  <section id="teacher" class="hide"></section>
 </div>
 
 <div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
+<div id="exportStage"></div>
 
 <script>
 /* ================= 설정 ================= */
 var SUPABASE_URL = "https://pqjuvuflinnrpemqcafl.supabase.co";
 var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxanV2dWZsaW5ucnBlbXFjYWZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NzAzMjQsImV4cCI6MjA5NDA0NjMyNH0.E4sJv1gM9TbWG-2o90aH8wJXZMLRY_uLQ9fgWARX1Ro";
 var TABLE = "custom_compare";
+var PHOTO_TABLE = "custom_photos";
+var BUCKET = "custom-photos";
 var GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
 var GEMINI_KEY = null;
 
 var CUSTOMS = ["출생","백일","첫돌","관례","혼례","회갑","장례"];
+var ERA_NAME = {past:"옛날", today:"오늘날"};
 
-/* 기본 자료: 7가지 일생 풍습 (AI 없이도 바로 보이는 교사 확인 자료) */
+/* 기본 자료 (AI 없이 바로 보이는 자료) — kw는 사진 검색어(시대별로 다르게) */
 var BASE = {
   "출생": {
     past:{look:"아기가 태어나면 대문에 새끼줄로 만든 금줄을 걸었어요. 아들이면 고추와 숯, 딸이면 숯과 솔가지를 끼웠어요. 금줄을 건 21일(삼칠일) 동안은 다른 사람이 집에 함부로 드나들지 않았어요. 엄마는 미역국을 먹었어요.",
           meaning:"갓 태어난 아기와 엄마를 나쁜 기운과 병으로부터 지키려는 마음이 담겨 있어요."},
     today:{look:"대부분 병원에서 아기가 태어나고, 산후조리원에서 엄마와 아기가 함께 쉬기도 해요. 가족과 친구에게 사진이나 메시지로 소식을 알리고, 출생 신고를 해요. 엄마는 지금도 미역국을 먹어요.",
            meaning:"아기와 엄마의 건강을 지키고, 새로운 가족이 생긴 것을 함께 축하하는 마음이에요."},
-    kw:{past:["Geumjul","금줄"], today:["newborn baby hospital","newborn baby"]}
+    kw:{past:["Geumjul","금줄"], today:["Korean maternity hospital newborn","산후조리원"]}
   },
   "백일": {
     past:{look:"아기가 태어난 지 100일이 되면 백설기와 수수팥떡을 만들었어요. 떡을 이웃 100집에 나누어 먹으면 아기가 오래 산다고 믿었어요.",
           meaning:"옛날에는 아기가 병으로 일찍 죽는 일이 많아서, 100일을 건강하게 넘긴 것을 크게 축하하고 오래 살기를 바랐어요. 붉은 수수팥떡은 나쁜 기운을 쫓는다고 여겼어요."},
     today:{look:"가족끼리 작은 백일상을 차리고 백일 기념사진을 찍어요. 떡을 주문해서 이웃이나 친척과 나누기도 해요.",
            meaning:"아기가 건강하게 자란 것을 축하하고, 앞으로도 튼튼하게 자라기를 바라는 마음이에요."},
-    kw:{past:["Baekseolgi","rice cake Korea white"], today:["baby 100 days celebration","baby photo studio"]}
+    kw:{past:["Baekseolgi","백설기"], today:["Korean baby 100th day","백일상"]}
   },
   "첫돌": {
     past:{look:"아기의 첫 생일에는 색동저고리를 입히고 돌상을 차렸어요. 돌상에는 백설기, 수수팥떡, 과일과 함께 실, 쌀, 붓, 돈 같은 물건을 놓고 아기가 무엇을 잡는지 보는 돌잡이를 했어요.",
           meaning:"첫 생일을 무사히 맞은 것을 축하하고, 오래 살고(실) 부자가 되고(쌀·돈) 공부를 잘하기를(붓) 바랐어요."},
     today:{look:"집이나 식당에서 가족과 가까운 사람들이 모여 돌잔치를 해요. 돌잡이도 하는데 마이크, 청진기, 컴퓨터 마우스처럼 요즘 직업과 관련된 물건이 더해졌어요. 기념사진도 많이 찍어요.",
            meaning:"아기의 첫 생일을 축하하고 건강하고 행복한 앞날을 바라는 마음은 옛날과 같아요."},
-    kw:{past:["Doljanchi","Dol (Korean birthday)"], today:["Doljabi","first birthday party Korea"]}
+    kw:{past:["Korean traditional dol table","돌상 전통"], today:["Doljanchi party Korea","돌잔치"]}
   },
   "관례": {
     past:{look:"남자는 15~20세 무렵 머리를 올려 상투를 틀고 갓을 쓰는 관례를 했어요. 여자는 15세 무렵 머리를 올려 쪽을 찌고 비녀를 꽂는 계례를 했어요.",
           meaning:"이제 어른이 되었음을 알리고, 어른으로서 책임감 있게 행동하겠다고 다짐하는 의식이에요."},
     today:{look:"5월 셋째 월요일 '성년의 날'에 만 19세가 된 사람들을 축하해요. 장미, 향수, 편지를 선물하기도 하고, 몇몇 곳에서는 전통 성년례를 다시 해 보기도 해요.",
            meaning:"어른이 된 것을 축하하고, 스스로 책임지는 어른이 되기를 바라는 마음이에요."},
-    kw:{past:["Gwallye","Korean coming of age ceremony traditional"], today:["Coming of Age Day Korea","성년례"]}
+    kw:{past:["Gwallye Korean coming of age","관례 갓"], today:["Coming of Age Day Korea","성년의 날"]}
   },
   "혼례": {
     past:{look:"신부 집 마당에 초례상을 차리고 전통 혼례를 했어요. 신랑은 사모관대, 신부는 원삼과 족두리를 입었어요. 신랑은 나무 기러기를 들고 갔어요.",
           meaning:"두 사람이 부부가 되어 평생 함께하기를 약속해요. 기러기는 한 번 짝을 맺으면 평생 함께 산다고 여겨 부부의 사랑을 뜻했어요."},
     today:{look:"예식장, 호텔, 야외 등에서 결혼식을 해요. 신랑은 턱시도, 신부는 웨딩드레스를 많이 입어요. 결혼식 뒤 폐백을 하며 전통을 이어 가기도 하고, 작은 결혼식도 늘었어요.",
            meaning:"두 사람이 가족이 되는 것을 축하하고 행복하게 살기를 바라는 마음은 옛날과 같아요."},
-    kw:{past:["Korean traditional wedding","Jeontong honrye"], today:["wedding ceremony hall","wedding dress ceremony"]}
+    kw:{past:["Korean traditional wedding ceremony","전통혼례"], today:["Korean wedding hall","예식장 결혼식"]}
   },
   "회갑": {
     past:{look:"태어난 해와 같은 간지(띠)가 다시 돌아오는 만 60세 생일을 회갑(환갑)이라고 해요. 자녀들이 큰 잔칫상을 차리고 절을 올리며 마을 사람들과 함께 잔치를 했어요.",
           meaning:"옛날에는 60세까지 사는 사람이 많지 않아, 오래 사신 것을 축하하고 부모님께 효도하는 마음을 표현했어요."},
     today:{look:"사람들이 더 오래 살게 되어 큰 잔치보다는 가족 식사나 여행으로 축하하는 경우가 많아요. 70세(칠순), 80세(팔순)를 더 크게 축하하기도 해요.",
            meaning:"부모님과 어르신의 건강과 장수를 축하하고 감사하는 마음이 이어지고 있어요."},
-    kw:{past:["Hwangap","Korean 60th birthday traditional"], today:["family birthday dinner grandparents","birthday cake elderly"]}
+    kw:{past:["Hwangap Korean 60th birthday","회갑연"], today:["Korean family birthday party elderly","칠순 잔치"]}
   },
   "장례": {
     past:{look:"집에서 장례를 치르고, 가족은 삼베로 만든 상복을 입었어요. 마을 사람들이 상여를 메고 노래(상엿소리)를 부르며 산소까지 함께 갔어요.",
           meaning:"돌아가신 분을 예의를 갖추어 보내 드리고, 슬픔을 마을 사람들과 함께 나누었어요."},
     today:{look:"주로 장례식장에서 3일 동안 장례를 치러요. 검은 옷을 입고, 조문객이 찾아와 가족을 위로해요. 화장을 하여 추모공원이나 봉안당에 모시는 경우가 많아요.",
            meaning:"돌아가신 분을 기억하고 남은 가족을 위로하는 마음은 옛날과 같아요."},
-    kw:{past:["Sangyeo","Korean funeral bier"], today:["funeral hall flowers","memorial park"]}
+    kw:{past:["Sangyeo Korean funeral bier","상여"], today:["Korean funeral hall","장례식장"]}
   }
+};
+
+/* 문장 틀 */
+var FRAMES = {
+  today:["오늘날에는 ○○에서 ○○을/를 해요.","○○을/를 바라는 마음이 담겨 있어요.","요즘에는 ○○도 해요."],
+  past:["옛날에는 ○○을/를 했어요.","○○하기를 바라는 뜻이 담겨 있어요.","왜냐하면 옛날에는 ○○했기 때문이에요."],
+  question:["왜 옛날 사람들은 ○○했을까?","○○에는 어떤 뜻이 담겨 있을까?","옛날에는 ○○을/를 어떻게 했을까?","지금도 ○○을/를 할까?"]
 };
 
 /* ================= 상태 ================= */
 var S = {
-  student:null,       // {cls, no, name}
-  tab:"today",
-  custom:null,
-  info:{},            // 풍습별 자료 캐시
-  imgs:{},            // "풍습|era" → 이미지 목록
-  record:null,        // 내 기록
-  pick:{today:null, past:null}
+  student:null, tab:"today", custom:null,
+  info:{}, extra:{}, tphotos:{},
+  record:null, pick:{today:null, past:null}
 };
 
 /* ================= 공통 ================= */
 function $(id){ return document.getElementById(id); }
+function each(sel, fn){ Array.prototype.forEach.call(document.querySelectorAll(sel), fn); }
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function nl(s){ return esc(s).replace(/\n/g,"<br>"); }
-function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(function(){t.classList.remove("show");},2200); }
+function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(function(){t.classList.remove("show");},2400); }
 function setStatus(kind, text){ var el=$("status"); el.className="status "+kind; el.textContent=text; }
 function store(k, v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }catch(e){ return null; } }
-
 function fetchT(url, opts, ms){
   var ctrl = new AbortController();
-  var timer = setTimeout(function(){ ctrl.abort(); }, ms || 8000);
+  var timer = setTimeout(function(){ ctrl.abort(); }, ms || 10000);
   opts = opts || {}; opts.signal = ctrl.signal;
   return fetch(url, opts).finally(function(){ clearTimeout(timer); });
 }
-
-/* ================= Supabase ================= */
-function sb(path, opts, ms){
-  opts = opts || {};
-  var headers = {"apikey":SUPABASE_KEY, "Authorization":"Bearer "+SUPABASE_KEY, "Content-Type":"application/json"};
-  if (opts.prefer) headers["Prefer"] = opts.prefer;
-  return fetchT(SUPABASE_URL + "/rest/v1/" + path, {method:opts.method||"GET", headers:headers, body:opts.body ? JSON.stringify(opts.body) : undefined}, ms)
-    .then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error(r.status+" "+t); }); return r.status===204 ? null : r.json(); });
+function copyText(txt){
+  function fallback(){
+    var ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("복사했어요!"); }catch(e){ toast("복사하지 못했어요."); }
+    document.body.removeChild(ta);
+  }
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(function(){ toast("복사했어요!"); }, fallback);
+  else fallback();
+}
+function splitSentences(t){
+  return String(t||"").replace(/([.!?])\s+/g,"$1\n").split(/\n+/).map(function(s){ return s.trim(); }).filter(Boolean);
 }
 
+/* ================= Supabase ================= */
+function sbHeaders(extra){
+  var h = {"apikey":SUPABASE_KEY, "Authorization":"Bearer "+SUPABASE_KEY};
+  for (var k in (extra||{})) h[k] = extra[k];
+  return h;
+}
+function sb(path, opts, ms){
+  opts = opts || {};
+  var h = sbHeaders({"Content-Type":"application/json"});
+  if (opts.prefer) h["Prefer"] = opts.prefer;
+  return fetchT(SUPABASE_URL + "/rest/v1/" + path, {method:opts.method||"GET", headers:h, body:opts.body ? JSON.stringify(opts.body) : undefined}, ms)
+    .then(function(r){
+      if(!r.ok) return r.text().then(function(t){ throw new Error(r.status+" "+t); });
+      if (r.status===204) return null;
+      return r.text().then(function(t){ return t ? JSON.parse(t) : null; });
+    });
+}
 function loadGeminiKey(){
   setStatus("wait","연결 중…");
   return sb("settings?key=eq.gemini_api_key&select=value", {}, 5000)
@@ -295,7 +343,6 @@ function loadGeminiKey(){
     })
     .catch(function(){ setStatus("err","DB 오류"); });
 }
-
 function myFilter(custom){
   return "class_code=eq."+encodeURIComponent(S.student.cls)+"&student_no=eq."+S.student.no+"&custom=eq."+encodeURIComponent(custom);
 }
@@ -308,8 +355,53 @@ function saveRecord(fields){
   return sb(TABLE+"?on_conflict=class_code,student_no,custom", {method:"POST", body:[row], prefer:"resolution=merge-duplicates,return=representation"})
     .then(function(rows){ S.record = rows && rows[0] ? rows[0] : S.record; return S.record; });
 }
+function deleteRecord(){
+  return sb(TABLE+"?"+myFilter(S.custom), {method:"DELETE"});
+}
 function loadMyCustoms(){
   return sb(TABLE+"?class_code=eq."+encodeURIComponent(S.student.cls)+"&student_no=eq."+S.student.no+"&select=custom").catch(function(){ return []; });
+}
+
+/* 사진 올리기 (Supabase Storage) — 올리기 전에 크기를 줄여요 */
+function resizeImage(file, max){
+  max = max || 1280;
+  return new Promise(function(resolve, reject){
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function(){
+      var w = img.naturalWidth, h = img.naturalHeight, r = Math.min(1, max/Math.max(w,h));
+      var c = document.createElement("canvas"); c.width = Math.round(w*r); c.height = Math.round(h*r);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(function(b){ b ? resolve(b) : reject(new Error("사진을 읽지 못했어요.")); }, "image/jpeg", 0.85);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("사진 파일을 열 수 없어요.")); };
+    img.src = url;
+  });
+}
+function uploadImage(file, folder){
+  return resizeImage(file).then(function(blob){
+    var path = folder + "/" + Date.now() + "-" + Math.random().toString(36).slice(2,8) + ".jpg";
+    return fetchT(SUPABASE_URL + "/storage/v1/object/" + BUCKET + "/" + path,
+      {method:"POST", headers:sbHeaders({"Content-Type":"image/jpeg","x-upsert":"true"}), body:blob}, 30000)
+      .then(function(r){
+        if (!r.ok) return r.text().then(function(t){ throw new Error("올리기 실패 "+r.status); });
+        return {path:path, url:SUPABASE_URL + "/storage/v1/object/public/" + BUCKET + "/" + path};
+      });
+  });
+}
+function removeStorage(path){
+  if (!path) return Promise.resolve();
+  return fetchT(SUPABASE_URL + "/storage/v1/object/" + BUCKET + "/" + path, {method:"DELETE", headers:sbHeaders()}).catch(function(){});
+}
+function folderKey(s){ return encodeURIComponent(s).replace(/%/g,"").toLowerCase(); }
+
+/* 선생님이 고른 사진 */
+function getTeacherPhotos(custom, era, force){
+  var key = custom+"|"+era;
+  if (S.tphotos[key] && !force) return Promise.resolve(S.tphotos[key]);
+  return sb(PHOTO_TABLE+"?custom=eq."+encodeURIComponent(custom)+"&era=eq."+era+"&select=*&order=created_at.asc")
+    .then(function(rows){ S.tphotos[key] = rows || []; return S.tphotos[key]; })
+    .catch(function(){ return []; });
 }
 
 /* ================= Gemini ================= */
@@ -333,19 +425,21 @@ function callGemini(prompt, asJson){
   }
   return tryNext();
 }
-function parseJson(t){
-  t = t.trim().replace(/^```(json)?/i,"").replace(/```$/,"").trim();
-  return JSON.parse(t);
+function parseJson(t){ return JSON.parse(t.trim().replace(/^```(json)?/i,"").replace(/```$/,"").trim()); }
+function aiInto(areaId, prompt){
+  var area = $(areaId);
+  area.innerHTML = '<div class="answer"><span class="spin"></span> 생각하는 중…</div>';
+  return callGemini(prompt).then(function(t){ area.innerHTML = '<div class="answer">'+nl(t.trim())+'</div>'; })
+    .catch(function(e){ area.innerHTML = '<div class="answer">'+esc(e.message)+'</div>'; });
 }
 
-/* 7가지 외의 풍습을 검색하면 AI가 같은 형식으로 정리 */
 function getInfo(custom){
   if (S.info[custom]) return Promise.resolve(S.info[custom]);
   if (BASE[custom]){ S.info[custom] = BASE[custom]; return Promise.resolve(BASE[custom]); }
-  var prompt = "너는 초등학교 3학년 사회 수업을 돕는 선생님이야. 우리나라 풍습 '"+custom+"'에 대해 옛날과 오늘날의 모습을 정리해 줘.\n"+
+  var prompt = "너는 초등학교 3학년 사회 수업을 돕는 선생님이야. 우리나라(한국) 풍습 '"+custom+"'에 대해 옛날과 오늘날의 모습을 정리해 줘.\n"+
     "- 초등학교 3학년이 이해할 수 있는 쉬운 말, 각 항목 2~3문장.\n- 사실만 쓰고, 확실하지 않은 내용은 쓰지 마.\n"+
     "- 우리나라 풍습이 아니거나 알 수 없는 말이면 found를 false로 해.\n"+
-    "- image_keywords는 Wikimedia Commons에서 사진을 찾을 검색어(영어 1개, 한국어 1개).\n"+
+    "- kw는 Wikimedia Commons에서 한국 사진을 찾을 검색어야. 옛날과 오늘날 검색어가 서로 겹치지 않게 해(영어 1개, 한국어 1개).\n"+
     'JSON 형식: {"found":true,"past":{"look":"옛날 모습","meaning":"담긴 뜻"},"today":{"look":"오늘날 모습","meaning":"담긴 뜻"},"kw":{"past":["영어","한국어"],"today":["영어","한국어"]}}';
   return callGemini(prompt, true).then(function(t){
     var j = parseJson(t);
@@ -354,15 +448,22 @@ function getInfo(custom){
   });
 }
 
-/* ================= 사진 (Wikimedia Commons) ================= */
+/* ================= 사진 검색 (Wikimedia Commons, 한국 사진만) ================= */
+var KOREA_RE = /korea|korean|한국|대한민국|조선|joseon|seoul|서울|busan|부산|jeju|제주|hanbok|한복/i;
 function stripHtml(h){ var d=document.createElement("div"); d.innerHTML=h||""; return (d.textContent||"").trim(); }
 function searchCommons(q){
-  var u = "https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=8"+
-          "&gsrsearch="+encodeURIComponent(q+" filetype:bitmap")+"&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=480";
-  return fetchT(u, {}, 10000).then(function(r){ return r.json(); }).then(function(d){
+  if (/[a-z]/i.test(q) && !/korea/i.test(q)) q += " Korea";
+  var u = "https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=20"+
+          "&gsrsearch="+encodeURIComponent(q+" filetype:bitmap")+"&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=640";
+  return fetchT(u, {}, 12000).then(function(r){ return r.json(); }).then(function(d){
     var pages = d && d.query && d.query.pages ? Object.keys(d.query.pages).map(function(k){ return d.query.pages[k]; }) : [];
     pages.sort(function(a,b){ return (a.index||0)-(b.index||0); });
-    return pages.filter(function(p){ return p.imageinfo && p.imageinfo[0] && p.imageinfo[0].thumburl; }).map(function(p){
+    return pages.filter(function(p){
+      if (!(p.imageinfo && p.imageinfo[0] && p.imageinfo[0].thumburl)) return false;
+      var m = p.imageinfo[0].extmetadata || {};
+      var text = (p.title||"") + " " + stripHtml(m.Categories && m.Categories.value) + " " + stripHtml(m.ImageDescription && m.ImageDescription.value);
+      return KOREA_RE.test(text);   // 한국 관련 사진만
+    }).map(function(p){
       var ii = p.imageinfo[0], m = ii.extmetadata || {};
       var artist = stripHtml(m.Artist && m.Artist.value).slice(0,40);
       var lic = m.LicenseShortName ? m.LicenseShortName.value : "";
@@ -370,34 +471,41 @@ function searchCommons(q){
     });
   }).catch(function(){ return []; });
 }
-function getImages(custom, era, info){
+function searchExtra(custom, era, info){
   var key = custom+"|"+era;
-  if (S.imgs[key]) return Promise.resolve(S.imgs[key]);
-  var kws = (info.kw && info.kw[era]) || [custom];
-  var out = [];
-  var chain = Promise.resolve();
+  if (S.extra[key]) return Promise.resolve(S.extra[key]);
+  var other = custom+"|"+(era==="past"?"today":"past");
+  var kws = (info && info.kw && info.kw[era]) || [(era==="past"?"전통 ":"")+custom];
+  var out = [], chain = Promise.resolve();
+  function used(u){
+    return out.some(function(o){ return o.url===u; }) ||
+           (S.extra[other]||[]).some(function(o){ return o.url===u; }) ||   // 다른 시대 사진과 겹치지 않게
+           (S.tphotos[key]||[]).some(function(o){ return o.url===u; });
+  }
   kws.forEach(function(q){
     chain = chain.then(function(){
-      if (out.length >= 4) return;
-      return searchCommons(q).then(function(list){
-        list.forEach(function(x){ if (out.length < 4 && !out.some(function(o){return o.url===x.url;})) out.push(x); });
-      });
+      if (out.length >= 6) return;
+      return searchCommons(q).then(function(list){ list.forEach(function(x){ if (out.length < 6 && !used(x.url)) out.push(x); }); });
     });
   });
-  return chain.then(function(){ S.imgs[key] = out; return out; });
+  return chain.then(function(){ S.extra[key] = out; return out; });
+}
+function googleUrl(custom, era){
+  var q = "대한민국 " + (era==="past" ? "옛날 전통 " : "오늘날 ") + custom;
+  return "https://www.google.com/search?tbm=isch&safe=active&q=" + encodeURIComponent(q);
 }
 
 /* ================= 로그인 ================= */
-function fillNoSelect(){
-  var s = $("inNo"), h = '<option value="">번호</option>';
-  for (var i=1;i<=30;i++) h += '<option value="'+i+'">'+i+'번</option>';
-  s.innerHTML = h;
+function fillSelects(){
   var c = '<option value="">반</option>';
   for (var j=1;j<=6;j++) c += '<option value="3-'+j+'">3학년 '+j+'반</option>';
   $("inClass").innerHTML = c;
+  var h = '<option value="">번호</option>';
+  for (var i=1;i<=30;i++) h += '<option value="'+i+'">'+i+'번</option>';
+  $("inNo").innerHTML = h;
 }
 function login(){
-  var cls = $("inClass").value.trim(), no = parseInt($("inNo").value,10), name = $("inName").value.trim();
+  var cls = $("inClass").value, no = parseInt($("inNo").value,10), name = $("inName").value.trim();
   if (!cls || !no || !name){ toast("반, 번호, 이름을 모두 입력해요."); return; }
   S.student = {cls:cls, no:no, name:name};
   store("cc_student", JSON.stringify(S.student));
@@ -409,7 +517,7 @@ function logout(){
   $("main").classList.add("hide"); $("who").classList.add("hide"); $("loginBox").classList.remove("hide");
 }
 function showMain(){
-  $("loginBox").classList.add("hide"); $("main").classList.remove("hide");
+  $("loginBox").classList.add("hide"); $("teacher").classList.add("hide"); $("main").classList.remove("hide");
   var w = $("who"); w.classList.remove("hide");
   w.innerHTML = esc(S.student.cls)+" "+S.student.no+"번 <b>"+esc(S.student.name)+"</b><button id='btnOut'>바꾸기</button>";
   $("btnOut").onclick = logout;
@@ -427,12 +535,12 @@ function renderChips(){
     $("chips").innerHTML = list.map(function(c){
       return '<button class="chip'+(c===S.custom?" on":"")+'" data-c="'+esc(c)+'">'+esc(c)+(myDone.indexOf(c)>=0?'<span class="dot" title="내 기록 있음"></span>':'')+'</button> ';
     }).join("");
-    Array.prototype.forEach.call(document.querySelectorAll("#chips .chip"), function(b){ b.onclick = function(){ selectCustom(b.getAttribute("data-c")); }; });
+    each("#chips .chip", function(b){ b.onclick = function(){ selectCustom(b.getAttribute("data-c")); }; });
   });
 }
 function selectCustom(c){
   S.custom = c; S.record = null; S.pick = {today:null, past:null};
-  Array.prototype.forEach.call(document.querySelectorAll("#chips .chip"), function(b){ b.classList.toggle("on", b.getAttribute("data-c")===c); });
+  each("#chips .chip", function(b){ b.classList.toggle("on", b.getAttribute("data-c")===c); });
   render();
 }
 function doSearch(){
@@ -440,14 +548,13 @@ function doSearch(){
   if (!q) return;
   $("inSearch").value = "";
   if (S.tab === "board") switchTab("today");
-  selectCustom(q);
-  renderChips();
+  selectCustom(q); renderChips();
 }
 
 /* ================= 탭 ================= */
 function switchTab(t){
   S.tab = t;
-  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(b){ b.classList.toggle("on", b.getAttribute("data-tab")===t); });
+  each(".tab", function(b){ b.classList.toggle("on", b.getAttribute("data-tab")===t); });
   $("chipBar").classList.toggle("hide", t === "board");
   render();
 }
@@ -462,51 +569,72 @@ function render(){
 }
 
 /* ================= ①② 조사하기 ================= */
+function imgCardHtml(x, i, group){
+  return '<div class="imgcard" data-g="'+group+'" data-i="'+i+'"><a href="'+esc(x.page||x.url)+'" target="_blank" rel="noopener"><img src="'+esc(x.url)+'" alt="풍습 사진" loading="lazy"></a>'+
+         '<div class="cap">'+esc(x.credit||"")+'</div><button>이 사진 고르기</button></div>';
+}
 function renderResearch(era){
-  var c = S.custom, isPast = era === "past";
-  var eraName = isPast ? "옛날" : "오늘날";
+  var c = S.custom, isPast = era === "past", eraName = ERA_NAME[era];
+  var frames = FRAMES[era].map(function(f){ return '<button data-f="'+esc(f)+'">'+esc(f)+'</button>'; }).join("");
+  var qframes = FRAMES.question.map(function(f){ return '<button data-f="'+esc(f)+'">'+esc(f)+'</button>'; }).join("");
   $("view").innerHTML =
     '<div class="grid2">'+
       '<div class="card">'+
         '<h3>'+esc(c)+' · '+eraName+' 모습 알아보기 <span class="tag '+era+'">'+eraName+'</span></h3>'+
         '<div id="infoArea"><span class="spin"></span> 자료를 불러오는 중…</div>'+
-        '<h3 style="margin-top:16px;font-size:17px">사진 살펴보기</h3>'+
-        '<div id="imgArea"><span class="spin"></span> 사진을 찾는 중…</div>'+
-        '<h3 style="margin-top:16px;font-size:17px">궁금한 점 물어보기</h3>'+
+        '<h4 class="sub">사진 살펴보기</h4>'+
+        '<div id="tPhotoArea"><span class="spin"></span> 사진을 불러오는 중…</div>'+
+        '<div class="photo-tools">'+
+          '<button class="btn ghost sm" id="btnMore">사진 더 찾기</button>'+
+          '<a class="btn ghost sm" id="btnGoogle" target="_blank" rel="noopener" href="'+esc(googleUrl(c, era))+'">구글 이미지 검색 ↗</a>'+
+          '<label class="btn ghost sm filebtn">내 사진 올리기<input type="file" accept="image/*" id="fileUp"></label>'+
+        '</div>'+
+        '<div id="extraArea"></div>'+
+        '<h4 class="sub">궁금한 점 물어보기</h4>'+
         '<div class="ask"><input id="inAsk" placeholder="예) '+(isPast?"왜 대문에 금줄을 걸었을까요?":"요즘 돌잡이에는 어떤 물건이 있나요?")+'"><button class="btn green sm" id="btnAsk">물어보기</button></div>'+
         '<div id="askArea"></div>'+
       '</div>'+
       '<div class="card">'+
         '<h3>나의 조사 기록 <span class="tag '+era+'">'+eraName+'</span></h3>'+
-        (isPast ? '<label class="f">궁금한 점(탐구 질문) <small>내가 알고 싶은 것을 질문으로 써요</small></label><textarea id="fQ" rows="2" placeholder="예) 옛날 사람들은 왜 백일 떡을 이웃과 나누었을까?"></textarea>' : '')+
+        (isPast ?
+          '<label class="f">궁금한 점(탐구 질문) <small>내가 알고 싶은 것을 질문으로 써요</small></label>'+
+          '<textarea id="fQ" rows="2" placeholder="예) 옛날 사람들은 왜 백일 떡을 이웃과 나누었을까?"></textarea>'+
+          '<div class="quick" id="qFrames"><span class="src-note">질문 시작말:</span>'+qframes+'<button class="ai" id="btnQHelp">질문 도우미</button></div>'+
+          '<div id="qHelpArea"></div>' : '')+
         '<label class="f">조사 내용 <small>'+eraName+'에는 어떤 모습이고, 어떤 뜻이 있나요?</small></label>'+
         '<textarea id="fContent" rows="6" placeholder="조사한 내용을 내 말로 정리해요."></textarea>'+
+        '<div class="quick" id="cFrames"><span class="src-note">문장 틀:</span>'+frames+'<button class="ai" id="btnCHelp">문장 도우미</button></div>'+
+        '<div id="cHelpArea"></div>'+
         '<label class="f">출처 <small>어디에서 알아냈나요?</small></label>'+
         '<input class="inp" id="fSource" placeholder="예) 사회 교과서 45쪽, 국가유산포털">'+
         '<div class="quick" id="srcQuick"><button>사회 교과서</button><button>웹 앱 자료</button><button>국가유산포털</button><button>가족 인터뷰</button></div>'+
         '<label class="f">고른 사진</label>'+
         '<div class="picked" id="picked"></div>'+
-        '<input class="inp" id="fImgUrl" placeholder="다른 사진 주소를 붙여 넣어도 돼요 (https://...)" style="margin-top:6px">'+
         '<div class="actions"><button class="btn red" id="btnSave">저장하기</button><span class="saved" id="savedMsg"></span></div>'+
+        '<div class="danger-zone">'+
+          '<button class="btn danger sm" id="btnClearEra">'+eraName+' 조사만 지우기</button>'+
+          '<button class="btn danger sm" id="btnClearAll">이 풍습 기록 모두 지우기</button>'+
+        '</div>'+
       '</div>'+
     '</div>';
 
-  Array.prototype.forEach.call(document.querySelectorAll("#srcQuick button"), function(b){
-    b.onclick = function(){ var f=$("fSource"); f.value = f.value ? f.value+", "+b.textContent : b.textContent; };
-  });
+  function insertFrame(targetId){ return function(b){ b.onclick = function(){ var f=$(targetId); f.value = (f.value ? f.value.replace(/\s*$/,"")+" " : "") + b.getAttribute("data-f"); f.focus(); }; }; }
+  each("#cFrames button[data-f]", insertFrame("fContent"));
+  if (isPast){ each("#qFrames button[data-f]", insertFrame("fQ")); $("btnQHelp").onclick = questionHelp; }
+  $("btnCHelp").onclick = function(){ contentHelp(era); };
+  each("#srcQuick button", function(b){ b.onclick = function(){ var f=$("fSource"); f.value = f.value ? f.value+", "+b.textContent : b.textContent; }; });
   $("btnAsk").onclick = function(){ ask(era); };
   $("inAsk").onkeydown = function(e){ if (e.key==="Enter") ask(era); };
   $("btnSave").onclick = function(){ saveResearch(era); };
-  $("fImgUrl").oninput = function(){
-    var v = this.value.trim();
-    if (/^https?:\/\//.test(v)){ S.pick[era] = {url:v, credit:"직접 찾은 사진: "+v}; drawPicked(era); markImgs(era); }
-  };
+  $("btnClearEra").onclick = function(){ clearEra(era); };
+  $("btnClearAll").onclick = clearAll;
+  $("btnMore").onclick = function(){ showExtra(c, era); };
+  $("fileUp").onchange = function(){ studentUpload(this, era); };
 
-  // 내 기록 불러오기
   loadRecord(c).then(function(r){
     S.record = r;
     if (r){
-      if (isPast){ $("fQ").value = r.past_question||""; }
+      if (isPast) $("fQ").value = r.past_question||"";
       $("fContent").value = r[era+"_content"]||"";
       $("fSource").value = r[era+"_source"]||"";
       if (r[era+"_image"]) S.pick[era] = {url:r[era+"_image"], credit:r[era+"_image_credit"]||""};
@@ -515,7 +643,6 @@ function renderResearch(era){
     drawPicked(era); markImgs(era);
   }).catch(function(){ drawPicked(era); toast("기록을 불러오지 못했어요. 인터넷을 확인해요."); });
 
-  // 자료 + 사진
   getInfo(c).then(function(info){
     if (S.custom !== c || S.tab !== era) return;
     var d = info[era] || {};
@@ -523,39 +650,64 @@ function renderResearch(era){
       '<div class="info-block '+era+'"><h4>'+eraName+'의 모습</h4>'+nl(d.look)+'</div>'+
       '<div class="info-block '+era+'"><h4>담긴 뜻</h4>'+nl(d.meaning)+'</div>'+
       '<div class="src-note">'+(info.ai ? "※ AI가 정리한 자료예요. 교과서나 국가유산포털에서 꼭 확인해요." : "※ 선생님이 준비한 자료예요. 교과서나 다른 자료와 비교해 보세요.")+'</div>';
-    return getImages(c, era, info).then(function(list){
-      if (S.custom !== c || S.tab !== era) return;
-      if (!list.length){ $("imgArea").innerHTML = '<div class="src-note">알맞은 사진을 찾지 못했어요. 다른 사진 주소를 붙여 넣어도 돼요.</div>'; return; }
-      $("imgArea").innerHTML = '<div class="imgs">'+list.map(function(x,i){
-        return '<div class="imgcard" data-i="'+i+'"><a href="'+esc(x.page)+'" target="_blank" rel="noopener"><img src="'+esc(x.url)+'" alt="'+esc(c)+' 사진" loading="lazy"></a>'+
-               '<div class="cap">'+esc(x.credit)+'</div><button>이 사진 고르기</button></div>';
-      }).join("")+'</div><div class="src-note">사진을 누르면 원본과 출처를 볼 수 있어요. 사진이 풍습과 맞는지 꼭 확인해요.</div>';
-      Array.prototype.forEach.call(document.querySelectorAll("#imgArea .imgcard"), function(el){
-        el.querySelector("button").onclick = function(){
-          var x = list[parseInt(el.getAttribute("data-i"),10)];
-          S.pick[era] = {url:x.url, credit:x.credit+" ("+x.page+")"};
-          $("fImgUrl").value = "";
-          drawPicked(era); markImgs(era);
-        };
-      });
-      markImgs(era);
-    });
   }).catch(function(e){
     if (S.custom !== c) return;
     $("infoArea").innerHTML = '<div class="src-note">'+esc(e.message||"자료를 불러오지 못했어요.")+'</div>';
-    $("imgArea").innerHTML = "";
   });
+
+  // 선생님이 고른 사진이 먼저, 없으면 자동으로 검색
+  getTeacherPhotos(c, era).then(function(list){
+    if (S.custom !== c || S.tab !== era) return;
+    if (list.length){
+      $("tPhotoArea").innerHTML = '<div class="src-note">선생님이 고른 사진이에요.</div><div class="imgs">'+list.map(function(x,i){ return imgCardHtml(x,i,"t"); }).join("")+'</div>';
+      bindImgs("#tPhotoArea", list, era);
+    } else {
+      $("tPhotoArea").innerHTML = "";
+      showExtra(c, era);
+    }
+  });
+}
+function bindImgs(scope, list, era){
+  each(scope+" .imgcard", function(el){
+    el.querySelector("button").onclick = function(){
+      var x = list[parseInt(el.getAttribute("data-i"),10)];
+      S.pick[era] = {url:x.url, credit:(x.credit||"선생님 자료")+(x.page ? " ("+x.page+")" : "")};
+      drawPicked(era); markImgs(era);
+    };
+  });
+  markImgs(era);
+}
+function showExtra(c, era){
+  var area = $("extraArea"); if (!area) return;
+  area.innerHTML = '<div class="src-note" style="margin-top:8px"><span class="spin"></span> 우리나라 사진을 찾는 중…</div>';
+  getInfo(c).catch(function(){ return null; }).then(function(info){ return searchExtra(c, era, info); }).then(function(list){
+    if (S.custom !== c || S.tab !== era) return;
+    if (!list.length){ area.innerHTML = '<div class="src-note" style="margin-top:8px">알맞은 사진을 찾지 못했어요. 구글 이미지 검색으로 찾아 \'내 사진 올리기\'로 올려 보세요.</div>'; return; }
+    area.innerHTML = '<div class="src-note" style="margin-top:8px">검색한 사진이에요(위키미디어 공용). 사진을 누르면 원본과 출처를 볼 수 있어요. 풍습과 맞는지 꼭 확인해요.</div><div class="imgs">'+
+      list.map(function(x,i){ return imgCardHtml(x,i,"e"); }).join("")+'</div>';
+    bindImgs("#extraArea", list, era);
+  });
+}
+function studentUpload(input, era){
+  var file = input.files && input.files[0]; input.value = "";
+  if (!file) return;
+  toast("사진을 올리는 중…");
+  uploadImage(file, "students/"+folderKey(S.student.cls)+"-"+S.student.no).then(function(r){
+    S.pick[era] = {url:r.url, credit:"직접 올린 사진 (출처 칸에 사진을 찾은 곳을 적어요)"};
+    drawPicked(era); markImgs(era);
+    toast("사진을 올렸어요. 저장하기를 눌러요.");
+  }).catch(function(e){ toast(e.message || "사진을 올리지 못했어요."); });
 }
 function drawPicked(era){
   var p = S.pick[era], el = $("picked");
   if (!el) return;
   el.innerHTML = p ? '<img src="'+esc(p.url)+'" alt="고른 사진"><div class="t">'+esc(p.credit)+'</div><button class="btn ghost sm" id="btnUnpick">빼기</button>'
-                   : '<div class="t">왼쪽에서 사진을 골라요.</div>';
+                   : '<div class="t">왼쪽에서 사진을 고르거나 올려요.</div>';
   if (p) $("btnUnpick").onclick = function(){ S.pick[era] = null; drawPicked(era); markImgs(era); };
 }
 function markImgs(era){
   var p = S.pick[era];
-  Array.prototype.forEach.call(document.querySelectorAll("#imgArea .imgcard"), function(el){
+  each(".imgcard", function(el){
     var on = p && el.querySelector("img").getAttribute("src") === p.url;
     el.classList.toggle("sel", !!on);
     el.querySelector("button").textContent = on ? "✓ 고른 사진" : "이 사진 고르기";
@@ -577,18 +729,43 @@ function saveResearch(era){
   }).catch(function(){ toast("저장하지 못했어요. 다시 눌러 보세요."); })
     .finally(function(){ b.disabled = false; b.textContent = "저장하기"; });
 }
+function clearEra(era){
+  if (!confirm(ERA_NAME[era]+" 조사 내용을 지울까요? 지운 내용은 되돌릴 수 없어요.")) return;
+  var f = {}; f[era+"_content"] = null; f[era+"_source"] = null; f[era+"_image"] = null; f[era+"_image_credit"] = null;
+  if (era === "past") f.past_question = null;
+  saveRecord(f).then(function(){ S.pick[era] = null; toast("지웠어요."); render(); })
+    .catch(function(){ toast("지우지 못했어요."); });
+}
+function clearAll(){
+  if (!confirm("'"+S.custom+"' 풍습의 오늘날·옛날·비교 기록을 모두 지울까요? 되돌릴 수 없어요.")) return;
+  deleteRecord().then(function(){ S.record = null; S.pick = {today:null, past:null}; toast("모두 지웠어요."); renderChips(); render(); })
+    .catch(function(){ toast("지우지 못했어요."); });
+}
 function ask(era){
   var q = $("inAsk").value.trim();
   if (!q) return;
-  var area = $("askArea");
-  area.innerHTML = '<div class="answer"><span class="spin"></span> 생각하는 중…</div>';
-  var prompt = "너는 초등학교 3학년 학생의 풍습 조사를 돕는 친절한 선생님이야.\n"+
-    "조사 중인 풍습: 우리나라의 '"+S.custom+"' ("+(era==="past"?"옛날":"오늘날")+" 모습)\n학생 질문: "+q+"\n"+
+  aiInto("askArea", "너는 초등학교 3학년 학생의 풍습 조사를 돕는 친절한 선생님이야.\n"+
+    "조사 중인 풍습: 우리나라의 '"+S.custom+"' ("+ERA_NAME[era]+" 모습)\n학생 질문: "+q+"\n"+
     "- 3~4문장, 초등학교 3학년이 이해할 쉬운 말로 답해.\n- 사실만 말하고, 확실하지 않으면 '확실하지 않아요. 책이나 어른께 확인해 보세요.'라고 말해.\n"+
-    "- 풍습과 관계없는 질문이면 풍습 조사로 돌아오도록 부드럽게 안내해.\n- 마지막 줄에 '확인할 곳: '으로 시작해 확인할 수 있는 곳(사회 교과서, 국가유산포털, 국립민속박물관 등)을 한 줄로 써.";
-  callGemini(prompt).then(function(t){
-    area.innerHTML = '<div class="answer">'+nl(t.trim())+'</div><div class="src-note">AI의 답을 그대로 옮기지 말고, 내 말로 바꿔서 조사 내용에 써요.</div>';
-  }).catch(function(e){ area.innerHTML = '<div class="answer">'+esc(e.message)+'</div>'; });
+    "- 풍습과 관계없는 질문이면 풍습 조사로 돌아오도록 부드럽게 안내해.\n- 마지막 줄에 '확인할 곳: '으로 시작해 확인할 수 있는 곳(사회 교과서, 국가유산포털, 국립민속박물관 등)을 한 줄로 써.")
+  .then(function(){ $("askArea").insertAdjacentHTML("beforeend",'<div class="src-note">AI의 답을 그대로 옮기지 말고, 내 말로 바꿔서 조사 내용에 써요.</div>'); });
+}
+function questionHelp(){
+  var q = $("fQ").value.trim();
+  aiInto("qHelpArea", "너는 초등학교 3학년 학생이 탐구 질문을 만들도록 돕는 선생님이야.\n"+
+    "학생이 조사하는 것: 우리나라 옛날 '"+S.custom+"' 풍습\n학생이 쓴 질문: "+(q || "(아직 없음)")+"\n\n"+
+    (q ? "- 잘한 점을 한 문장으로 칭찬해.\n- '왜', '어떻게'처럼 이유나 뜻을 알아볼 수 있는 질문이 되도록 고칠 방향을 한 가지만 제안해.\n- 학생 질문을 대신 완성해서 써 주지 마.\n"
+       : "- 학생이 스스로 질문을 만들 수 있도록 '왜 옛날 사람들은 ___했을까?'처럼 빈칸이 있는 질문 시작말을 2개만 보여 줘.\n- 빈칸에 들어갈 말은 알려주지 마.\n")+
+    "- 쉬운 말로 3문장 이내.");
+}
+function contentHelp(era){
+  var t = $("fContent").value.trim();
+  if (!t){ $("cHelpArea").innerHTML = '<div class="answer">먼저 한두 문장이라도 써 보세요. 위의 문장 틀을 눌러 시작해도 좋아요.</div>'; return; }
+  aiInto("cHelpArea", "너는 초등학교 3학년 학생의 조사 글쓰기를 돕는 선생님이야.\n"+
+    "풍습: 우리나라 '"+S.custom+"' ("+ERA_NAME[era]+" 모습)\n학생이 쓴 조사 내용: "+t+"\n\n"+
+    "다음 순서로 답해.\n1) 잘한 점 한 문장.\n2) 모습과 담긴 뜻이 모두 들어 있는지 확인하고, 빠진 것이 있으면 무엇을 더 쓰면 좋을지 질문 1개.\n"+
+    "3) 맞춤법이 틀리거나 어색한 곳이 있으면 '○○ → ○○' 모양으로 2개까지만.\n"+
+    "- 학생 글을 대신 다시 써 주지 마.\n- 사실과 다른 내용이 있으면 '이 부분은 다시 확인해 보세요'라고만 알려 줘.\n- 쉬운 말, 전체 5문장 이내.");
 }
 
 /* ================= ③ 비교하기 ================= */
@@ -603,7 +780,7 @@ function renderCompare(){
       return;
     }
     function side(era){
-      var nm = era==="past"?"옛날":"오늘날";
+      var nm = ERA_NAME[era];
       var img = r[era+"_image"] ? '<img src="'+esc(r[era+"_image"])+'" alt="'+nm+' 사진">' : '<div class="noimg">사진 없음</div>';
       return '<div class="side"><h3>'+nm+'의 '+esc(c)+' <span class="tag '+era+'">'+(era==="past"?"6차시":"5차시")+'</span></h3>'+img+
              '<div>'+(r[era+"_content"] ? nl(r[era+"_content"]) : '<span class="src-note">아직 조사하지 않았어요.</span>')+'</div>'+
@@ -615,64 +792,85 @@ function renderCompare(){
         '<div class="card">'+
           '<h3>두 시대 비교하기</h3>'+
           '<label class="f">같은 점 <small>두 시대에 모두 있는 것은?</small></label><textarea id="fSame" rows="2"></textarea>'+
+          '<div class="frame">문장 틀: 두 시대 모두 <b>~을/를 한다</b>. <button class="btn ghost xs" data-fr="fSame" data-t="두 시대 모두 ○○을/를 한다.">넣기</button></div>'+
           '<label class="f">다른 점 <small>무엇이 달라졌나요?</small></label><textarea id="fDiff" rows="3"></textarea>'+
-          '<div class="frame">문장 틀: 옛날에는 <b>~했지만</b>, 오늘날에는 <b>~한다</b>. <button class="btn ghost sm" id="frameDiff" style="margin-left:6px">넣기</button></div>'+
+          '<div class="frame">문장 틀: 옛날에는 <b>~했지만</b>, 오늘날에는 <b>~한다</b>. <button class="btn ghost xs" data-fr="fDiff" data-t="옛날에는 ○○했지만, 오늘날에는 ○○한다.">넣기</button></div>'+
           '<label class="f">달라진 까닭 <small>왜 달라졌을까요?</small></label><textarea id="fReason" rows="2"></textarea>'+
-          '<div class="frame">문장 틀: 왜냐하면 <b>~이기 때문이다</b>. <button class="btn ghost sm" id="frameReason" style="margin-left:6px">넣기</button></div>'+
+          '<div class="frame">문장 틀: 왜냐하면 <b>~이기 때문이다</b>. <button class="btn ghost xs" data-fr="fReason" data-t="왜냐하면 ○○이기 때문이다.">넣기</button></div>'+
           '<label class="f">이어지는 마음 <small>모습은 달라도 똑같이 담긴 마음은?</small></label><textarea id="fHeart" rows="2"></textarea>'+
-          '<div class="frame">문장 틀: 두 시대 모두 <b>~하는 마음</b>은 같다. <button class="btn ghost sm" id="frameHeart" style="margin-left:6px">넣기</button></div>'+
+          '<div class="frame">문장 틀: 두 시대 모두 <b>~하는 마음</b>은 같다. <button class="btn ghost xs" data-fr="fHeart" data-t="두 시대 모두 ○○하는 마음은 같다.">넣기</button></div>'+
           '<div class="actions"><button class="btn red" id="btnSaveCmp">저장하기</button><button class="btn green" id="btnHint">생각 도움 받기</button><span class="saved" id="savedMsg"></span></div>'+
           '<div id="hintArea"></div>'+
+          '<div class="danger-zone"><button class="btn danger sm" id="btnClearCmp">비교 내용만 지우기</button><button class="btn danger sm" id="btnClearAll">이 풍습 기록 모두 지우기</button></div>'+
         '</div>'+
         '<div class="card">'+
-          '<h3>풍습 비교 카드 미리 보기</h3>'+
+          '<h3>풍습 비교 카드</h3>'+
           '<div id="cardPreview"></div>'+
-          '<div class="actions">'+
-            '<button class="btn blue" id="btnCopy">캔바에 붙일 내용 복사</button>'+
-            (r.past_image ? '<a class="btn ghost sm" href="'+esc(r.past_image)+'" target="_blank" rel="noopener" download>옛날 사진 열기</a>' : '')+
-            (r.today_image ? '<a class="btn ghost sm" href="'+esc(r.today_image)+'" target="_blank" rel="noopener" download>오늘날 사진 열기</a>' : '')+
-          '</div>'+
-          '<div class="src-note">사진은 열어서 길게 누르거나 오른쪽 클릭으로 저장한 뒤 캔바에 올려요.</div>'+
+          '<div class="actions"><button class="btn blue" id="btnPng">카드 이미지로 저장</button></div>'+
+          '<div class="src-note">저장한 그림 파일을 패들렛에 올릴 수 있어요.</div>'+
+          '<details class="box" id="copyBox"><summary>캔바로 옮길 때: 문장별로 복사하기</summary><div class="copylist" id="copyList"></div></details>'+
         '</div>'+
       '</div>';
 
     $("fSame").value = r.same_point||""; $("fDiff").value = r.diff_point||"";
     $("fReason").value = r.reason||""; $("fHeart").value = r.heart||"";
-    function addFrame(id, txt){ var f=$(id); f.value = (f.value ? f.value+"\n" : "") + txt; f.focus(); drawPreview(); }
-    $("frameDiff").onclick = function(){ addFrame("fDiff","옛날에는 했지만, 오늘날에는 한다."); };
-    $("frameReason").onclick = function(){ addFrame("fReason","왜냐하면 이기 때문이다."); };
-    $("frameHeart").onclick = function(){ addFrame("fHeart","두 시대 모두 하는 마음은 같다."); };
+    each("[data-fr]", function(b){ b.onclick = function(){ var f=$(b.getAttribute("data-fr")); f.value = (f.value ? f.value+"\n" : "") + b.getAttribute("data-t"); f.focus(); drawPreview(); }; });
     ["fSame","fDiff","fReason","fHeart"].forEach(function(id){ $(id).oninput = drawPreview; });
     $("btnSaveCmp").onclick = saveCompare;
     $("btnHint").onclick = hint;
-    $("btnCopy").onclick = copyCard;
+    $("btnPng").onclick = function(){ exportPng(cmpValues(), whoText()); };
+    $("btnClearCmp").onclick = clearCompare;
+    $("btnClearAll").onclick = clearAll;
+    $("copyBox").ontoggle = function(){ if (this.open) drawCopyList(); };
     drawPreview();
   }).catch(function(){ $("view").innerHTML = '<div class="card" style="margin-top:16px"><div class="empty">기록을 불러오지 못했어요. 인터넷을 확인해요.</div></div>'; });
 }
+function whoText(){ return S.student.cls+" "+S.student.no+"번 "+S.student.name; }
+function valuesFromRow(r){
+  return {custom:r.custom, past:r.past_content||"", today:r.today_content||"", same:r.same_point||"", diff:r.diff_point||"",
+          reason:r.reason||"", heart:r.heart||"", pastSrc:r.past_source||"", todaySrc:r.today_source||"",
+          pastImg:r.past_image||"", todayImg:r.today_image||"", pastCredit:r.past_image_credit||"", todayCredit:r.today_image_credit||""};
+}
 function cmpValues(){
-  var r = S.record || {};
-  return {
-    custom:S.custom, past:r.past_content||"", today:r.today_content||"",
-    same:$("fSame") ? $("fSame").value.trim() : r.same_point||"",
-    diff:$("fDiff") ? $("fDiff").value.trim() : r.diff_point||"",
-    reason:$("fReason") ? $("fReason").value.trim() : r.reason||"",
-    heart:$("fHeart") ? $("fHeart").value.trim() : r.heart||"",
-    pastSrc:r.past_source||"", todaySrc:r.today_source||"",
-    pastCredit:r.past_image_credit||"", todayCredit:r.today_image_credit||""
-  };
+  var v = valuesFromRow(S.record || {custom:S.custom});
+  v.custom = S.custom;
+  if ($("fSame")){ v.same=$("fSame").value.trim(); v.diff=$("fDiff").value.trim(); v.reason=$("fReason").value.trim(); v.heart=$("fHeart").value.trim(); }
+  return v;
 }
 function cardHtml(v, who){
-  return '<div class="preview"><div class="ttl">'+esc(v.custom)+' 풍습 비교 카드</div>'+
-    '<div class="two"><div class="p"><b>옛날</b><br>'+nl(v.past)+'</div><div class="t"><b>오늘날</b><br>'+nl(v.today)+'</div></div>'+
-    '<div class="row"><b>같은 점</b>'+nl(v.same)+'</div>'+
-    '<div class="row"><b>다른 점</b>'+nl(v.diff)+'</div>'+
-    '<div class="row"><b>달라진 까닭</b>'+nl(v.reason)+'</div>'+
-    '<div class="row"><b>이어지는 마음</b>'+nl(v.heart)+'</div>'+
-    '<div class="foot">출처 · 옛날: '+esc(v.pastSrc)+' / 오늘날: '+esc(v.todaySrc)+(who ? '<br>'+esc(who) : '')+'</div></div>';
+  function half(cls, nm, img, txt){
+    return '<div class="'+cls+'"><b>'+nm+'</b>'+(img ? '<img src="'+esc(img)+'" crossorigin="anonymous" alt="'+nm+' 사진">' : '<div class="ni">사진 없음</div>')+nl(txt)+'</div>';
+  }
+  return '<div class="pcard"><div class="ttl">'+esc(v.custom)+' 풍습 비교 카드</div>'+
+    '<div class="two">'+half("p","옛날",v.pastImg,v.past)+half("t","오늘날",v.todayImg,v.today)+'</div>'+
+    '<div class="row"><b>같은 점</b><span>'+nl(v.same)+'</span></div>'+
+    '<div class="row"><b>다른 점</b><span>'+nl(v.diff)+'</span></div>'+
+    '<div class="row"><b>달라진 까닭</b><span>'+nl(v.reason)+'</span></div>'+
+    '<div class="row"><b>이어지는 마음</b><span>'+nl(v.heart)+'</span></div>'+
+    '<div class="foot">출처 · 옛날: '+esc(v.pastSrc)+' / 오늘날: '+esc(v.todaySrc)+
+      (v.pastCredit ? '<br>옛날 사진: '+esc(v.pastCredit) : '')+(v.todayCredit ? '<br>오늘날 사진: '+esc(v.todayCredit) : '')+
+      (who ? '<br><b>'+esc(who)+'</b>' : '')+'</div></div>';
 }
 function drawPreview(){
   var el = $("cardPreview"); if (!el) return;
-  el.innerHTML = cardHtml(cmpValues(), S.student.cls+" "+S.student.no+"번 "+S.student.name);
+  el.innerHTML = cardHtml(cmpValues(), whoText());
+  if ($("copyBox") && $("copyBox").open) drawCopyList();
+}
+function drawCopyList(){
+  if (!$("copyList")) return;
+  var v = cmpValues();
+  var items = [["제목", v.custom+" 풍습 비교 카드"],["옛날 모습",v.past],["오늘날 모습",v.today],["같은 점",v.same],["다른 점",v.diff],
+               ["달라진 까닭",v.reason],["이어지는 마음",v.heart],["출처","옛날: "+v.pastSrc+" / 오늘날: "+v.todaySrc],["만든 사람",whoText()]];
+  var all = [];
+  $("copyList").innerHTML = items.map(function(it){
+    var sents = splitSentences(it[1]);
+    if (!sents.length) return "";
+    return '<div class="item"><h5>'+esc(it[0])+'</h5>'+sents.map(function(s){
+      all.push(s);
+      return '<div class="sent"><span>'+esc(s)+'</span><button class="btn ghost xs" data-k="'+(all.length-1)+'">복사</button></div>';
+    }).join("")+'</div>';
+  }).join("") + '<div class="src-note">사진은 위 카드의 사진을 길게 누르거나 오른쪽 클릭으로 저장해 캔바에 올려요.</div>';
+  each("#copyList [data-k]", function(b){ b.onclick = function(){ copyText(all[parseInt(b.getAttribute("data-k"),10)]); }; });
 }
 function saveCompare(){
   var v = cmpValues();
@@ -683,45 +881,53 @@ function saveCompare(){
     .catch(function(){ toast("저장하지 못했어요. 다시 눌러 보세요."); })
     .finally(function(){ b.disabled = false; b.textContent = "저장하기"; });
 }
+function clearCompare(){
+  if (!confirm("같은 점, 다른 점, 달라진 까닭, 이어지는 마음을 지울까요?")) return;
+  saveRecord({same_point:null, diff_point:null, reason:null, heart:null}).then(function(){ toast("지웠어요."); render(); })
+    .catch(function(){ toast("지우지 못했어요."); });
+}
 function hint(){
-  var v = cmpValues(), area = $("hintArea");
-  area.innerHTML = '<div class="answer"><span class="spin"></span> 생각할 거리를 찾는 중…</div>';
-  var prompt = "너는 초등학교 3학년 학생이 옛날과 오늘날의 풍습을 비교하도록 돕는 선생님이야.\n"+
+  var v = cmpValues();
+  aiInto("hintArea", "너는 초등학교 3학년 학생이 옛날과 오늘날의 풍습을 비교하도록 돕는 선생님이야.\n"+
     "풍습: "+v.custom+"\n학생이 조사한 옛날 모습: "+v.past+"\n학생이 조사한 오늘날 모습: "+v.today+"\n"+
     "학생이 쓴 같은 점: "+(v.same||"(아직 없음)")+"\n다른 점: "+(v.diff||"(아직 없음)")+"\n달라진 까닭: "+(v.reason||"(아직 없음)")+"\n\n"+
     "- 정답을 직접 알려주지 마.\n- 학생이 스스로 같은 점, 다른 점, 달라진 까닭을 생각할 수 있도록 돕는 질문을 2개만 써.\n"+
-    "- 학생이 이미 잘 쓴 부분이 있으면 한 문장으로 칭찬하고 시작해.\n- 쉬운 말, 전체 4문장 이내.";
-  callGemini(prompt).then(function(t){ area.innerHTML = '<div class="answer">'+nl(t.trim())+'</div>'; })
-    .catch(function(e){ area.innerHTML = '<div class="answer">'+esc(e.message)+'</div>'; });
+    "- 학생이 이미 잘 쓴 부분이 있으면 한 문장으로 칭찬하고 시작해.\n- 쉬운 말, 전체 4문장 이내.");
 }
-function copyCard(){
-  var v = cmpValues();
-  var txt = "["+v.custom+" 풍습 비교 카드]\n\n"+
-    "옛날 모습: "+v.past+"\n\n오늘날 모습: "+v.today+"\n\n"+
-    "같은 점: "+v.same+"\n\n다른 점: "+v.diff+"\n\n달라진 까닭: "+v.reason+"\n\n이어지는 마음: "+v.heart+"\n\n"+
-    "출처 - 옛날: "+v.pastSrc+" / 오늘날: "+v.todaySrc+
-    (v.pastCredit ? "\n옛날 사진: "+v.pastCredit : "")+(v.todayCredit ? "\n오늘날 사진: "+v.todayCredit : "")+
-    "\n\n"+S.student.cls+" "+S.student.no+"번 "+S.student.name;
-  function fallback(){
-    var ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select();
-    try{ document.execCommand("copy"); toast("복사했어요! 캔바에 붙여 넣어요."); }catch(e){ toast("복사하지 못했어요."); }
-    document.body.removeChild(ta);
-  }
-  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(function(){ toast("복사했어요! 캔바에 붙여 넣어요."); }, fallback);
-  else fallback();
+
+/* 카드를 그림 파일(PNG)로 저장 */
+function exportPng(v, who){
+  if (!window.html2canvas){ toast("이미지 저장 기능을 불러오지 못했어요. 인터넷을 확인해요."); return; }
+  toast("카드 그림을 만드는 중…");
+  var stage = $("exportStage");
+  stage.innerHTML = '<div style="padding:24px;background:#f6efe0">'+cardHtml(v, who)+'</div>';
+  var imgs = stage.querySelectorAll("img");
+  Promise.all(Array.prototype.map.call(imgs, function(im){
+    return im.complete ? Promise.resolve() : new Promise(function(res){ im.onload = res; im.onerror = function(){ im.remove(); res(); }; });
+  })).then(function(){
+    return html2canvas(stage.firstChild, {useCORS:true, scale:2, backgroundColor:"#f6efe0"});
+  }).then(function(canvas){
+    var name = "풍습카드_"+v.custom+"_"+(who||"").replace(/\s+/g,"_")+".png";
+    canvas.toBlob(function(blob){
+      var url = URL.createObjectURL(blob), a = document.createElement("a");
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      toast("카드 그림을 저장했어요. 패들렛에 올려요!");
+      stage.innerHTML = "";
+    }, "image/png");
+  }).catch(function(){ stage.innerHTML = ""; toast("그림을 만들지 못했어요. 다시 해 보세요."); });
 }
 
 /* ================= ④ 우리 반 모아보기 ================= */
 var boardRows = [];
 function renderBoard(){
-  $("view").innerHTML = '<div class="card" style="margin-top:16px"><h3>'+esc(S.student.cls)+' 우리 반 풍습 탐험 현황 <button class="btn ghost sm" id="btnRefresh" style="margin-left:auto">새로 고침</button></h3><div id="boardArea"><span class="spin"></span> 불러오는 중…</div></div>';
+  $("view").innerHTML = '<div class="card" style="margin-top:16px"><h3>'+esc(S.student.cls.replace("3-","3학년 "))+'반 풍습 탐험 현황 <button class="btn ghost sm" id="btnRefresh" style="margin-left:auto">새로 고침</button></h3><div id="boardArea"><span class="spin"></span> 불러오는 중…</div></div>';
   $("btnRefresh").onclick = renderBoard;
-  sb(TABLE+"?class_code=eq."+encodeURIComponent(S.student.cls)+"&select=*&order=custom.asc,student_no.asc").then(function(rows){
+  sb(TABLE+"?class_code=eq."+encodeURIComponent(S.student.cls)+"&select=*").then(function(rows){
     boardRows = rows || [];
     if (!boardRows.length){ $("boardArea").innerHTML = '<div class="empty">아직 저장된 기록이 없어요.</div>'; return; }
-    var order = CUSTOMS.concat([]);
     boardRows.sort(function(a,b){
-      var ia = order.indexOf(a.custom), ib = order.indexOf(b.custom);
+      var ia = CUSTOMS.indexOf(a.custom), ib = CUSTOMS.indexOf(b.custom);
       ia = ia<0?99:ia; ib = ib<0?99:ib;
       return ia-ib || a.student_no-b.student_no;
     });
@@ -731,40 +937,108 @@ function renderBoard(){
         return '<tr><td><b>'+esc(r.custom)+'</b></td><td>'+r.student_no+'</td><td class="l">'+esc(r.student_name)+'</td><td>'+mk(r.today_content)+'</td><td>'+mk(r.past_content)+'</td><td>'+mk(r.same_point||r.diff_point)+'</td>'+
                '<td><button class="btn ghost sm" data-i="'+i+'">카드 보기</button></td></tr>';
       }).join("")+'</tbody></table>';
-    Array.prototype.forEach.call(document.querySelectorAll("#boardArea button[data-i]"), function(b){
-      b.onclick = function(){ openCard(boardRows[parseInt(b.getAttribute("data-i"),10)]); };
-    });
+    each("#boardArea button[data-i]", function(b){ b.onclick = function(){ openCard(boardRows[parseInt(b.getAttribute("data-i"),10)]); }; });
   }).catch(function(){ $("boardArea").innerHTML = '<div class="empty">불러오지 못했어요.</div>'; });
 }
 function openCard(r){
-  var v = {custom:r.custom, past:r.past_content||"", today:r.today_content||"", same:r.same_point||"", diff:r.diff_point||"", reason:r.reason||"", heart:r.heart||"", pastSrc:r.past_source||"", todaySrc:r.today_source||""};
-  var imgs = '<div class="two" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'+
-    (r.past_image ? '<img src="'+esc(r.past_image)+'" style="width:100%;height:150px;object-fit:cover;border-radius:10px" alt="옛날 사진">' : '<div class="noimg">옛날 사진 없음</div>')+
-    (r.today_image ? '<img src="'+esc(r.today_image)+'" style="width:100%;height:150px;object-fit:cover;border-radius:10px" alt="오늘날 사진">' : '<div class="noimg">오늘날 사진 없음</div>')+'</div>';
-  $("modalBox").innerHTML = imgs + cardHtml(v, r.class_code+" "+r.student_no+"번 "+(r.student_name||"")) +
-    '<div class="actions"><button class="btn" id="btnClose">닫기</button></div>';
+  var v = valuesFromRow(r), who = r.class_code+" "+r.student_no+"번 "+(r.student_name||"");
+  $("modalBox").innerHTML = cardHtml(v, who) +
+    '<div class="actions"><button class="btn blue" id="btnPngM">카드 이미지로 저장</button><button class="btn" id="btnClose">닫기</button></div>';
   $("modal").classList.add("show");
   $("btnClose").onclick = function(){ $("modal").classList.remove("show"); };
+  $("btnPngM").onclick = function(){ exportPng(v, who); };
+}
+
+/* ================= 선생님 메뉴: 풍습별 사진 관리 ================= */
+var T = {custom:"출생", era:"past"};
+function teacherLogin(){
+  var pw = prompt("선생님 비밀번호를 입력하세요.");
+  if (pw === null) return;
+  sb("settings?key=eq.teacher_password&select=value", {}, 5000).then(function(rows){
+    var real = rows && rows[0] ? String(rows[0].value) : null;
+    if (!real){ toast("선생님 비밀번호가 설정되어 있지 않아요."); return; }
+    if (pw !== real){ toast("비밀번호가 맞지 않아요."); return; }
+    $("loginBox").classList.add("hide"); $("main").classList.add("hide"); $("teacher").classList.remove("hide");
+    renderTeacher();
+  }).catch(function(){ toast("DB에 연결하지 못했어요."); });
+}
+function renderTeacher(){
+  var chips = CUSTOMS.map(function(c){ return '<button class="chip'+(c===T.custom?" on":"")+'" data-c="'+esc(c)+'">'+esc(c)+'</button>'; }).join(" ");
+  $("teacher").innerHTML =
+    '<div class="card" style="margin-top:20px">'+
+      '<h3>선생님 메뉴 · 풍습별 사진 관리 <button class="btn ghost sm" id="btnTBack" style="margin-left:auto">학생 화면으로</button></h3>'+
+      '<p class="src-note">여기에 올린 사진이 학생 화면에서 가장 먼저 보여요. 풍습과 시대(옛날/오늘날)를 골라 올려 주세요.</p>'+
+      '<div class="chips" style="margin-top:12px"><span class="lbl">풍습</span>'+chips+
+        '<div class="searchbox"><input id="tOther" placeholder="다른 풍습 (예: 설날)"><button class="btn sm" id="tOtherBtn">선택</button></div></div>'+
+      '<div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">'+
+        '<div class="seg"><button data-e="past" class="'+(T.era==="past"?"on":"")+'">옛날</button><button data-e="today" class="'+(T.era==="today"?"on":"")+'">오늘날</button></div>'+
+        '<b style="font-size:18px">'+esc(T.custom)+' · '+ERA_NAME[T.era]+'</b>'+
+      '</div>'+
+      '<label class="f">사진 출처 <small>예) 국립민속박물관, 국가유산포털</small></label>'+
+      '<input class="inp" id="tCredit" placeholder="사진 출처">'+
+      '<div class="actions"><label class="btn red filebtn">사진 올리기 (여러 장 가능)<input type="file" accept="image/*" multiple id="tFiles"></label><span class="saved" id="tMsg"></span></div>'+
+      '<div id="tList" style="margin-top:14px"><span class="spin"></span></div>'+
+    '</div>';
+  each("#teacher .chip", function(b){ b.onclick = function(){ T.custom = b.getAttribute("data-c"); renderTeacher(); }; });
+  $("tOtherBtn").onclick = function(){ var v=$("tOther").value.trim(); if(v){ T.custom=v; renderTeacher(); } };
+  each("#teacher .seg button", function(b){ b.onclick = function(){ T.era = b.getAttribute("data-e"); renderTeacher(); }; });
+  $("btnTBack").onclick = function(){ $("teacher").classList.add("hide"); if (S.student) showMain(); else $("loginBox").classList.remove("hide"); };
+  $("tFiles").onchange = function(){ teacherUpload(this); };
+  drawTeacherList();
+}
+function drawTeacherList(){
+  getTeacherPhotos(T.custom, T.era, true).then(function(list){
+    if (!list.length){ $("tList").innerHTML = '<div class="empty" style="padding:20px">아직 올린 사진이 없어요. 사진이 없으면 학생 화면에서 자동 검색 사진이 보여요.</div>'; return; }
+    $("tList").innerHTML = '<div class="imgs" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">'+list.map(function(x,i){
+      return '<div class="imgcard"><img src="'+esc(x.url)+'" alt="사진"><div class="cap">'+esc(x.credit||"")+'</div><button data-del="'+i+'">삭제</button></div>';
+    }).join("")+'</div>';
+    each("#tList [data-del]", function(b){
+      b.onclick = function(){
+        var x = list[parseInt(b.getAttribute("data-del"),10)];
+        if (!confirm("이 사진을 삭제할까요?")) return;
+        sb(PHOTO_TABLE+"?id=eq."+x.id, {method:"DELETE"}).then(function(){ return removeStorage(x.path); })
+          .then(function(){ toast("삭제했어요."); drawTeacherList(); })
+          .catch(function(){ toast("삭제하지 못했어요."); });
+      };
+    });
+  });
+}
+function teacherUpload(input){
+  var files = Array.prototype.slice.call(input.files || []); input.value = "";
+  if (!files.length) return;
+  var credit = $("tCredit").value.trim() || "선생님 자료";
+  var done = 0, chain = Promise.resolve();
+  $("tMsg").textContent = "올리는 중… 0/"+files.length;
+  files.forEach(function(f){
+    chain = chain.then(function(){
+      return uploadImage(f, "teacher/"+folderKey(T.custom)+"-"+T.era).then(function(r){
+        return sb(PHOTO_TABLE, {method:"POST", body:[{custom:T.custom, era:T.era, url:r.url, path:r.path, credit:credit}]});
+      }).then(function(){ done++; $("tMsg").textContent = "올리는 중… "+done+"/"+files.length; })
+        .catch(function(){ toast("올리지 못한 사진이 있어요."); });
+    });
+  });
+  chain.then(function(){ $("tMsg").textContent = done+"장 올렸어요 ✓"; S.tphotos = {}; drawTeacherList(); });
 }
 
 /* ================= 시작 ================= */
 function init(){
-  fillNoSelect();
+  fillSelects();
   $("btnLogin").onclick = login;
   $("inName").onkeydown = function(e){ if (e.key==="Enter") login(); };
+  $("btnTeacher").onclick = teacherLogin;
   $("btnSearch").onclick = doSearch;
   $("inSearch").onkeydown = function(e){ if (e.key==="Enter") doSearch(); };
-  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(b){ b.onclick = function(){ switchTab(b.getAttribute("data-tab")); }; });
+  each(".tab", function(b){ b.onclick = function(){ switchTab(b.getAttribute("data-tab")); }; });
   $("modal").onclick = function(e){ if (e.target === this) this.classList.remove("show"); };
 
   loadGeminiKey();
   var saved = store("cc_student");
   if (saved){
     try{ S.student = JSON.parse(saved); }catch(e){ S.student = null; }
-    if (S.student && S.student.no){
+    if (S.student && S.student.no && /^3-[1-6]$/.test(S.student.cls)){
       $("inClass").value = S.student.cls; $("inNo").value = S.student.no; $("inName").value = S.student.name;
       showMain();
-    }
+    } else S.student = null;
   }
 }
 init();
