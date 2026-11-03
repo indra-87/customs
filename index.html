@@ -156,6 +156,30 @@
   .seg{display:inline-flex;border:2px solid var(--line);border-radius:12px;overflow:hidden}
   .seg button{border:none;background:#fff;padding:8px 16px;font-weight:600}
   .seg button.on{background:var(--ink);color:#fff}
+  /* 글·사진 블록 편집기 */
+  .blocks{display:flex;flex-direction:column}
+  .ins{display:flex;gap:6px;justify-content:center;align-items:center;min-height:30px;opacity:.5;transition:opacity .15s}
+  .ins:hover,.ins:focus-within{opacity:1}
+  .ins button{border:1px dashed var(--muted);background:transparent;border-radius:999px;padding:1px 12px;font-size:12.5px;color:var(--muted)}
+  .ins.on{opacity:1;background:var(--green-soft);border:2px dashed var(--green);border-radius:10px;margin:4px 0;padding:6px}
+  .ins.on .msg{font-size:13.5px;color:var(--green);font-weight:600}
+  .blk{background:#fff;border:2px solid var(--line);border-radius:12px;padding:6px 8px 8px}
+  .blk:focus-within{border-color:var(--blue)}
+  .blk .bar{display:flex;gap:4px;justify-content:flex-end;margin-bottom:2px}
+  .blk .bar button{border:none;background:var(--paper2);border-radius:6px;padding:1px 8px;font-size:12px;color:var(--muted)}
+  .blk textarea{border:none;padding:4px;resize:vertical}
+  .blk.photo img{width:100%;max-height:280px;object-fit:contain;background:#f3eee4;border-radius:8px;display:block}
+  .blk .cap-in{width:100%;margin-top:6px;padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:14px}
+  .blk .credit{font-size:11.5px;color:var(--muted);margin-top:4px;word-break:break-all}
+  .view-blocks .vt{margin:6px 0}
+  .view-blocks figure{margin:10px 0}
+  .vs .side .view-blocks img{width:100%;height:auto;max-height:220px;object-fit:cover;border-radius:10px;margin:0;display:block}
+  .view-blocks figcaption{font-size:13px;color:var(--muted);text-align:center;margin-top:3px}
+  .pcard .two .ph{display:grid;gap:6px;margin:6px 0}
+  .pcard .two .ph.n2{grid-template-columns:1fr 1fr}
+  .pcard .two .ph img{margin:0}
+  .pcard .two .ph.n2 img{height:110px}
+  .pcard .two .ph small{display:block;font-size:11.5px;color:var(--muted);text-align:center;line-height:1.3;margin-top:2px}
   #exportStage{position:fixed;left:-10000px;top:0;width:900px}
 </style>
 </head>
@@ -301,7 +325,7 @@ var FRAMES = {
 var S = {
   student:null, tab:"today", custom:null,
   info:{}, extra:{}, tphotos:{},
-  record:null, pick:{today:null, past:null}
+  record:null, blocks:{today:null, past:null}, insertAt:{today:null, past:null}, lastText:{today:null, past:null}, dirty:false
 };
 
 /* ================= 공통 ================= */
@@ -527,6 +551,7 @@ function login(){
   showMain();
 }
 function logout(){
+  if (!leaveOk()) return;
   S.student = null; S.custom = null; S.record = null;
   try{ localStorage.removeItem("cc_student"); }catch(e){}
   $("main").classList.add("hide"); $("who").classList.add("hide"); $("loginBox").classList.remove("hide");
@@ -554,7 +579,8 @@ function renderChips(){
   });
 }
 function selectCustom(c){
-  S.custom = c; S.record = null; S.pick = {today:null, past:null};
+  if (c !== S.custom && !leaveOk()) return;
+  S.custom = c; S.record = null;
   each("#chips .chip", function(b){ b.classList.toggle("on", b.getAttribute("data-c")===c); });
   render();
 }
@@ -568,6 +594,7 @@ function doSearch(){
 
 /* ================= 탭 ================= */
 function switchTab(t){
+  if (t !== S.tab && !leaveOk()) return;
   S.tab = t;
   each(".tab", function(b){ b.classList.toggle("on", b.getAttribute("data-tab")===t); });
   $("chipBar").classList.toggle("hide", t === "board");
@@ -602,25 +629,48 @@ function setCompareOpen(map){
 }
 
 /* ================= ①② 조사하기 ================= */
+/* 조사 내용은 '글 블록'과 '사진 블록'을 차례로 쌓아서 만들어요.
+   블록: {type:"text", text} 또는 {type:"photo", url, credit, caption} */
+var MAX_PHOTOS = 8;
+function blocksFromRow(r, era){
+  if (r && Array.isArray(r[era+"_blocks"]) && r[era+"_blocks"].length) return JSON.parse(JSON.stringify(r[era+"_blocks"]));
+  var b = [];
+  if (r && r[era+"_image"]) b.push({type:"photo", url:r[era+"_image"], credit:r[era+"_image_credit"]||"", caption:""});
+  b.push({type:"text", text:(r && r[era+"_content"]) || ""});
+  return b;
+}
+function blocksText(blocks){
+  return (blocks||[]).filter(function(b){ return b.type==="text" && b.text.trim(); }).map(function(b){ return b.text.trim(); }).join("\n\n");
+}
+function blocksPhotos(blocks){ return (blocks||[]).filter(function(b){ return b.type==="photo"; }); }
+function markDirty(){ S.dirty = true; var m=$("savedMsg"); if (m) m.textContent = "저장하지 않은 내용이 있어요"; }
+function leaveOk(){
+  if (!S.dirty) return true;
+  if (confirm("저장하지 않은 내용이 있어요. 저장하지 않고 넘어갈까요?")){ S.dirty = false; return true; }
+  return false;
+}
+
 function imgCardHtml(x, i, group){
   return '<div class="imgcard" data-g="'+group+'" data-i="'+i+'"><a href="'+esc(x.page||x.url)+'" target="_blank" rel="noopener"><img src="'+esc(x.url)+'" alt="풍습 사진" loading="lazy"></a>'+
-         '<div class="cap">'+esc(x.credit||"")+'</div><button>이 사진 고르기</button></div>';
+         '<div class="cap">'+esc(x.credit||"")+'</div><button>+ 사진 넣기</button></div>';
 }
 function renderResearch(era){
   var c = S.custom, isPast = era === "past", eraName = ERA_NAME[era];
   var frames = FRAMES[era].map(function(f){ return '<button data-f="'+esc(f)+'">'+esc(f)+'</button>'; }).join("");
   var qframes = FRAMES.question.map(function(f){ return '<button data-f="'+esc(f)+'">'+esc(f)+'</button>'; }).join("");
+  S.blocks[era] = null; S.insertAt[era] = null; S.lastText[era] = null; S.dirty = false;
   $("view").innerHTML =
     '<div class="grid2">'+
       '<div class="card">'+
         '<h3>'+esc(c)+' · '+eraName+' 모습 알아보기 <span class="tag '+era+'">'+eraName+'</span></h3>'+
         '<div id="infoArea"><span class="spin"></span> 자료를 불러오는 중…</div>'+
         '<h4 class="sub">사진 살펴보기</h4>'+
+        '<div class="src-note">마음에 드는 사진의 \'+ 사진 넣기\'를 누르면 내 조사 기록에 들어가요. 여러 장 넣을 수 있어요.</div>'+
         '<div id="tPhotoArea"><span class="spin"></span> 사진을 불러오는 중…</div>'+
         '<div class="photo-tools">'+
           '<button class="btn ghost sm" id="btnMore">사진 더 찾기</button>'+
           '<a class="btn ghost sm" id="btnGoogle" target="_blank" rel="noopener" href="'+esc(googleUrl(c, era))+'">구글 이미지 검색 ↗</a>'+
-          '<label class="btn ghost sm filebtn">내 사진 올리기<input type="file" accept="image/*" id="fileUp"></label>'+
+          '<label class="btn ghost sm filebtn">내 사진 올리기<input type="file" accept="image/*" multiple id="fileUp"></label>'+
         '</div>'+
         '<div id="extraArea"></div>'+
         '<h4 class="sub">궁금한 점 물어보기</h4>'+
@@ -634,15 +684,13 @@ function renderResearch(era){
           '<textarea id="fQ" rows="2" placeholder="예) 옛날 사람들은 왜 백일 떡을 이웃과 나누었을까?"></textarea>'+
           '<div class="quick" id="qFrames"><span class="src-note">질문 시작말:</span>'+qframes+'<button class="ai" id="btnQHelp">질문 도우미</button></div>'+
           '<div id="qHelpArea"></div>' : '')+
-        '<label class="f">조사 내용 <small>'+eraName+'에는 어떤 모습이고, 어떤 뜻이 있나요?</small></label>'+
-        '<textarea id="fContent" rows="6" placeholder="조사한 내용을 내 말로 정리해요."></textarea>'+
+        '<label class="f">조사 내용 <small>'+eraName+'에는 어떤 모습이고, 어떤 뜻이 있나요? 글 사이사이에 사진을 넣을 수 있어요.</small></label>'+
+        '<div class="blocks" id="blocks"><span class="spin"></span></div>'+
         '<div class="quick" id="cFrames"><span class="src-note">문장 틀:</span>'+frames+'<button class="ai" id="btnCHelp">문장 도우미</button></div>'+
         '<div id="cHelpArea"></div>'+
         '<label class="f">출처 <small>어디에서 알아냈나요?</small></label>'+
         '<input class="inp" id="fSource" placeholder="예) 사회 교과서 45쪽, 국가유산포털">'+
         '<div class="quick" id="srcQuick"><button>사회 교과서</button><button>웹 앱 자료</button><button>국가유산포털</button><button>가족 인터뷰</button></div>'+
-        '<label class="f">고른 사진</label>'+
-        '<div class="picked" id="picked"></div>'+
         '<div class="actions"><button class="btn red" id="btnSave">저장하기</button><span class="saved" id="savedMsg"></span></div>'+
         '<div class="danger-zone">'+
           '<button class="btn danger sm" id="btnClearEra">'+eraName+' 조사만 지우기</button>'+
@@ -651,11 +699,15 @@ function renderResearch(era){
       '</div>'+
     '</div>';
 
-  function insertFrame(targetId){ return function(b){ b.onclick = function(){ var f=$(targetId); f.value = (f.value ? f.value.replace(/\s*$/,"")+" " : "") + b.getAttribute("data-f"); f.focus(); }; }; }
-  each("#cFrames button[data-f]", insertFrame("fContent"));
-  if (isPast){ each("#qFrames button[data-f]", insertFrame("fQ")); $("btnQHelp").onclick = questionHelp; }
+  each("#cFrames button[data-f]", function(b){ b.onclick = function(){ insertIntoText(era, b.getAttribute("data-f")); }; });
+  if (isPast){
+    each("#qFrames button[data-f]", function(b){ b.onclick = function(){ var f=$("fQ"); f.value = (f.value ? f.value.replace(/\s*$/,"")+" " : "") + b.getAttribute("data-f"); f.focus(); markDirty(); }; });
+    $("btnQHelp").onclick = questionHelp;
+    $("fQ").oninput = markDirty;
+  }
   $("btnCHelp").onclick = function(){ contentHelp(era); };
-  each("#srcQuick button", function(b){ b.onclick = function(){ var f=$("fSource"); f.value = f.value ? f.value+", "+b.textContent : b.textContent; }; });
+  each("#srcQuick button", function(b){ b.onclick = function(){ var f=$("fSource"); f.value = f.value ? f.value+", "+b.textContent : b.textContent; markDirty(); }; });
+  $("fSource").oninput = markDirty;
   $("btnAsk").onclick = function(){ ask(era); };
   $("inAsk").onkeydown = function(e){ if (e.key==="Enter") ask(era); };
   $("btnSave").onclick = function(){ saveResearch(era); };
@@ -665,16 +717,19 @@ function renderResearch(era){
   $("fileUp").onchange = function(){ studentUpload(this, era); };
 
   loadRecord(c).then(function(r){
+    if (S.custom !== c || S.tab !== era) return;
     S.record = r;
+    S.blocks[era] = blocksFromRow(r, era);
     if (r){
       if (isPast) $("fQ").value = r.past_question||"";
-      $("fContent").value = r[era+"_content"]||"";
       $("fSource").value = r[era+"_source"]||"";
-      if (r[era+"_image"]) S.pick[era] = {url:r[era+"_image"], credit:r[era+"_image_credit"]||""};
       if (r.updated_at) $("savedMsg").textContent = "마지막 저장 "+new Date(r.updated_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
     }
-    drawPicked(era); markImgs(era);
-  }).catch(function(){ drawPicked(era); toast("기록을 불러오지 못했어요. 인터넷을 확인해요."); });
+    drawBlocks(era);
+  }).catch(function(){
+    S.blocks[era] = blocksFromRow(null, era); drawBlocks(era);
+    toast("기록을 불러오지 못했어요. 인터넷을 확인해요.");
+  });
 
   getInfo(c).then(function(info){
     if (S.custom !== c || S.tab !== era) return;
@@ -688,7 +743,6 @@ function renderResearch(era){
     $("infoArea").innerHTML = '<div class="src-note">'+esc(e.message||"자료를 불러오지 못했어요.")+'</div>';
   });
 
-  // 선생님이 고른 사진이 먼저, 없으면 자동으로 검색
   getTeacherPhotos(c, era).then(function(list){
     if (S.custom !== c || S.tab !== era) return;
     if (list.length){
@@ -700,12 +754,106 @@ function renderResearch(era){
     }
   });
 }
+
+/* 블록 편집기 그리기 */
+function insBar(era, at){
+  var on = S.insertAt[era] === at;
+  if (on) return '<div class="ins on" data-at="'+at+'"><span class="msg">📍 왼쪽에서 사진을 넣으면 여기에 들어가요</span><button data-cancel="1">취소</button></div>';
+  return '<div class="ins" data-at="'+at+'"><button data-add="text">+ 글</button><button data-add="photo">+ 사진 넣을 곳</button></div>';
+}
+function drawBlocks(era){
+  var el = $("blocks"); if (!el) return;
+  var bl = S.blocks[era] || [];
+  var h = insBar(era, 0);
+  bl.forEach(function(b, i){
+    var tools = '<div class="bar">'+(i>0?'<button data-up="'+i+'" title="위로">↑</button>':'')+(i<bl.length-1?'<button data-down="'+i+'" title="아래로">↓</button>':'')+'<button data-del="'+i+'">지우기</button></div>';
+    if (b.type === "photo"){
+      h += '<div class="blk photo" data-bi="'+i+'">'+tools+
+           '<img src="'+esc(b.url)+'" alt="'+esc(b.caption||"조사 사진")+'">'+
+           '<input class="cap-in" data-cap="'+i+'" value="'+esc(b.caption||"")+'" placeholder="사진 설명을 써요 (예: 돌상 앞에서 돌잡이를 하는 아기)">'+
+           '<div class="credit">'+esc(b.credit||"")+'</div></div>';
+    } else {
+      h += '<div class="blk text" data-bi="'+i+'">'+tools+
+           '<textarea data-txt="'+i+'" rows="4" placeholder="조사한 내용을 내 말로 정리해요.">'+esc(b.text)+'</textarea></div>';
+    }
+    h += insBar(era, i+1);
+  });
+  el.innerHTML = h;
+
+  each("#blocks textarea[data-txt]", function(t){
+    var i = parseInt(t.getAttribute("data-txt"),10);
+    t.oninput = function(){ S.blocks[era][i].text = t.value; markDirty(); };
+    t.onfocus = function(){ S.lastText[era] = i; };
+  });
+  each("#blocks input[data-cap]", function(t){
+    var i = parseInt(t.getAttribute("data-cap"),10);
+    t.oninput = function(){ S.blocks[era][i].caption = t.value; markDirty(); };
+  });
+  each("#blocks [data-up]", function(b){ b.onclick = function(){ moveBlock(era, +b.getAttribute("data-up"), -1); }; });
+  each("#blocks [data-down]", function(b){ b.onclick = function(){ moveBlock(era, +b.getAttribute("data-down"), 1); }; });
+  each("#blocks [data-del]", function(b){ b.onclick = function(){ delBlock(era, +b.getAttribute("data-del")); }; });
+  each("#blocks .ins", function(bar){
+    var at = parseInt(bar.getAttribute("data-at"),10);
+    var addT = bar.querySelector('[data-add="text"]'), addP = bar.querySelector('[data-add="photo"]'), cancel = bar.querySelector("[data-cancel]");
+    if (addT) addT.onclick = function(){
+      S.blocks[era].splice(at, 0, {type:"text", text:""}); fixIndexes(era, at, 1); markDirty(); drawBlocks(era);
+      var t = document.querySelector('#blocks textarea[data-txt="'+at+'"]'); if (t) t.focus();
+    };
+    if (addP) addP.onclick = function(){ S.insertAt[era] = at; drawBlocks(era); toast("왼쪽에서 넣을 사진을 골라요."); };
+    if (cancel) cancel.onclick = function(){ S.insertAt[era] = null; drawBlocks(era); };
+  });
+  markImgs(era);
+}
+function fixIndexes(era, at, delta){
+  if (S.lastText[era] != null && S.lastText[era] >= at) S.lastText[era] += delta;
+}
+function moveBlock(era, i, d){
+  var bl = S.blocks[era], j = i + d;
+  if (j < 0 || j >= bl.length) return;
+  var t = bl[i]; bl[i] = bl[j]; bl[j] = t;
+  S.lastText[era] = null; markDirty(); drawBlocks(era);
+}
+function delBlock(era, i){
+  var bl = S.blocks[era], b = bl[i];
+  if (b.type === "text" && b.text.trim() && !confirm("이 글을 지울까요?")) return;
+  if (b.type === "photo" && !confirm("이 사진을 조사 기록에서 뺄까요?")) return;
+  bl.splice(i, 1);
+  if (!bl.some(function(x){ return x.type === "text"; })) bl.push({type:"text", text:""});
+  S.lastText[era] = null; S.insertAt[era] = null; markDirty(); drawBlocks(era);
+}
+/* 사진 넣기: 정한 자리(없으면 마지막 글 다음)에 넣어요 */
+function addPhoto(era, p){
+  var bl = S.blocks[era]; if (!bl) return;
+  if (bl.some(function(b){ return b.type==="photo" && b.url===p.url; })){ toast("이미 넣은 사진이에요."); return; }
+  if (blocksPhotos(bl).length >= MAX_PHOTOS){ toast("사진은 "+MAX_PHOTOS+"장까지 넣을 수 있어요."); return; }
+  var at = S.insertAt[era];
+  if (at == null) at = S.lastText[era] != null ? S.lastText[era] + 1 : bl.length;
+  bl.splice(at, 0, {type:"photo", url:p.url, credit:p.credit||"", caption:""});
+  fixIndexes(era, at, 1);
+  S.insertAt[era] = null; markDirty(); drawBlocks(era);
+  var cap = document.querySelector('#blocks input[data-cap="'+at+'"]');
+  if (cap){ try{ cap.scrollIntoView({block:"center", behavior:"smooth"}); cap.focus({preventScroll:true}); }catch(e){} }
+  toast("사진을 넣었어요. 사진 설명을 써 보세요.");
+}
+/* 문장 틀은 마지막으로 쓰던 글 칸에 넣어요 */
+function insertIntoText(era, txt){
+  var bl = S.blocks[era]; if (!bl) return;
+  var i = S.lastText[era];
+  if (i == null || !bl[i] || bl[i].type !== "text"){
+    i = -1;
+    for (var k = bl.length-1; k >= 0; k--) if (bl[k].type === "text"){ i = k; break; }
+    if (i < 0){ bl.push({type:"text", text:""}); i = bl.length-1; }
+  }
+  bl[i].text = (bl[i].text ? bl[i].text.replace(/\s*$/,"")+" " : "") + txt;
+  S.lastText[era] = i; markDirty(); drawBlocks(era);
+  var t = document.querySelector('#blocks textarea[data-txt="'+i+'"]'); if (t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+}
+
 function bindImgs(scope, list, era){
   each(scope+" .imgcard", function(el){
     el.querySelector("button").onclick = function(){
       var x = list[parseInt(el.getAttribute("data-i"),10)];
-      S.pick[era] = {url:x.url, credit:(x.credit||"선생님 자료")+(x.page ? " ("+x.page+")" : "")};
-      drawPicked(era); markImgs(era);
+      addPhoto(era, {url:x.url, credit:(x.credit||"선생님 자료")+(x.page ? " ("+x.page+")" : "")});
     };
   });
   markImgs(era);
@@ -722,41 +870,47 @@ function showExtra(c, era){
   });
 }
 function studentUpload(input, era){
-  var file = input.files && input.files[0]; input.value = "";
-  if (!file) return;
+  var files = Array.prototype.slice.call(input.files || []); input.value = "";
+  if (!files.length) return;
+  var room = MAX_PHOTOS - blocksPhotos(S.blocks[era]).length;
+  if (room <= 0){ toast("사진은 "+MAX_PHOTOS+"장까지 넣을 수 있어요."); return; }
+  files = files.slice(0, room);
   toast("사진을 올리는 중…");
-  uploadImage(file, "students/"+folderKey(S.student.cls)+"-"+S.student.no).then(function(r){
-    S.pick[era] = {url:r.url, credit:"직접 올린 사진 (출처 칸에 사진을 찾은 곳을 적어요)"};
-    drawPicked(era); markImgs(era);
-    toast("사진을 올렸어요. 저장하기를 눌러요.");
-  }).catch(function(e){ toast(e.message || "사진을 올리지 못했어요."); });
-}
-function drawPicked(era){
-  var p = S.pick[era], el = $("picked");
-  if (!el) return;
-  el.innerHTML = p ? '<img src="'+esc(p.url)+'" alt="고른 사진"><div class="t">'+esc(p.credit)+'</div><button class="btn ghost sm" id="btnUnpick">빼기</button>'
-                   : '<div class="t">왼쪽에서 사진을 고르거나 올려요.</div>';
-  if (p) $("btnUnpick").onclick = function(){ S.pick[era] = null; drawPicked(era); markImgs(era); };
+  var chain = Promise.resolve();
+  files.forEach(function(file){
+    chain = chain.then(function(){
+      return uploadImage(file, "students/"+folderKey(S.student.cls)+"-"+S.student.no).then(function(r){
+        var keep = S.insertAt[era];
+        addPhoto(era, {url:r.url, credit:"직접 올린 사진 (출처 칸에 사진을 찾은 곳을 적어요)"});
+        if (keep != null) S.insertAt[era] = keep + 1;   // 여러 장이면 차례대로 이어서 넣기
+      }).catch(function(e){ toast(e.message || "사진을 올리지 못했어요."); });
+    });
+  });
+  chain.then(function(){ S.insertAt[era] = null; drawBlocks(era); toast("사진을 올렸어요. 저장하기를 눌러요."); });
 }
 function markImgs(era){
-  var p = S.pick[era];
-  each(".imgcard", function(el){
-    var on = p && el.querySelector("img").getAttribute("src") === p.url;
-    el.classList.toggle("sel", !!on);
-    el.querySelector("button").textContent = on ? "✓ 고른 사진" : "이 사진 고르기";
+  var used = blocksPhotos(S.blocks[era]).map(function(b){ return b.url; });
+  each(".imgcard[data-g]", function(el){
+    var on = used.indexOf(el.querySelector("img").getAttribute("src")) >= 0;
+    el.classList.toggle("sel", on);
+    el.querySelector("button").textContent = on ? "✓ 넣은 사진" : "+ 사진 넣기";
   });
 }
 function saveResearch(era){
-  var content = $("fContent").value.trim(), src = $("fSource").value.trim();
+  var bl = (S.blocks[era]||[]).filter(function(b){ return b.type === "photo" || b.text.trim(); });
+  var content = blocksText(bl), src = $("fSource").value.trim();
   if (!content){ toast("조사 내용을 먼저 써요."); return; }
   if (!src){ toast("출처를 꼭 적어요."); $("fSource").focus(); return; }
+  var first = blocksPhotos(bl)[0];
   var f = {};
+  f[era+"_blocks"] = bl;
   f[era+"_content"] = content; f[era+"_source"] = src;
-  f[era+"_image"] = S.pick[era] ? S.pick[era].url : null;
-  f[era+"_image_credit"] = S.pick[era] ? S.pick[era].credit : null;
+  f[era+"_image"] = first ? first.url : null;
+  f[era+"_image_credit"] = first ? first.credit : null;
   if (era === "past") f.past_question = $("fQ").value.trim();
   var b = $("btnSave"); b.disabled = true; b.textContent = "저장 중…";
   saveRecord(f).then(function(){
+    S.dirty = false;
     $("savedMsg").textContent = "저장했어요! ✓"; toast("저장했어요!");
     if (myDone.indexOf(S.custom) < 0) renderChips();
   }).catch(function(){ toast("저장하지 못했어요. 다시 눌러 보세요."); })
@@ -764,14 +918,14 @@ function saveResearch(era){
 }
 function clearEra(era){
   if (!confirm(ERA_NAME[era]+" 조사 내용을 지울까요? 지운 내용은 되돌릴 수 없어요.")) return;
-  var f = {}; f[era+"_content"] = null; f[era+"_source"] = null; f[era+"_image"] = null; f[era+"_image_credit"] = null;
+  var f = {}; f[era+"_blocks"] = null; f[era+"_content"] = null; f[era+"_source"] = null; f[era+"_image"] = null; f[era+"_image_credit"] = null;
   if (era === "past") f.past_question = null;
-  saveRecord(f).then(function(){ S.pick[era] = null; toast("지웠어요."); render(); })
+  saveRecord(f).then(function(){ S.dirty = false; toast("지웠어요."); render(); })
     .catch(function(){ toast("지우지 못했어요."); });
 }
 function clearAll(){
   if (!confirm("'"+S.custom+"' 풍습의 오늘날·옛날·비교 기록을 모두 지울까요? 되돌릴 수 없어요.")) return;
-  deleteRecord().then(function(){ S.record = null; S.pick = {today:null, past:null}; toast("모두 지웠어요."); renderChips(); render(); })
+  deleteRecord().then(function(){ S.record = null; S.dirty = false; toast("모두 지웠어요."); renderChips(); render(); })
     .catch(function(){ toast("지우지 못했어요."); });
 }
 function ask(era){
@@ -792,12 +946,16 @@ function questionHelp(){
     "- 쉬운 말로 3문장 이내.");
 }
 function contentHelp(era){
-  var t = $("fContent").value.trim();
+  var bl = S.blocks[era] || [];
+  var t = blocksText(bl);
+  var caps = blocksPhotos(bl).map(function(b){ return b.caption; }).filter(Boolean);
   if (!t){ $("cHelpArea").innerHTML = '<div class="answer">먼저 한두 문장이라도 써 보세요. 위의 문장 틀을 눌러 시작해도 좋아요.</div>'; return; }
   aiInto("cHelpArea", "너는 초등학교 3학년 학생의 조사 글쓰기를 돕는 선생님이야.\n"+
-    "풍습: 우리나라 '"+S.custom+"' ("+ERA_NAME[era]+" 모습)\n학생이 쓴 조사 내용: "+t+"\n\n"+
+    "풍습: 우리나라 '"+S.custom+"' ("+ERA_NAME[era]+" 모습)\n학생이 쓴 조사 내용: "+t+"\n"+
+    "넣은 사진 수: "+blocksPhotos(bl).length+"장"+(caps.length ? ", 학생이 쓴 사진 설명: "+caps.join(" / ") : "")+"\n\n"+
     "다음 순서로 답해.\n1) 잘한 점 한 문장.\n2) 모습과 담긴 뜻이 모두 들어 있는지 확인하고, 빠진 것이 있으면 무엇을 더 쓰면 좋을지 질문 1개.\n"+
     "3) 맞춤법이 틀리거나 어색한 곳이 있으면 '○○ → ○○' 모양으로 2개까지만.\n"+
+    "- 사진이 있는데 사진 설명이 없으면 사진 설명을 써 보라고 한 문장으로 알려 줘.\n"+
     "- 학생 글을 대신 다시 써 주지 마.\n- 사실과 다른 내용이 있으면 '이 부분은 다시 확인해 보세요'라고만 알려 줘.\n- 쉬운 말, 전체 5문장 이내.");
 }
 
@@ -813,10 +971,9 @@ function renderCompare(){
       return;
     }
     function side(era){
-      var nm = ERA_NAME[era];
-      var img = r[era+"_image"] ? '<img src="'+esc(r[era+"_image"])+'" alt="'+nm+' 사진">' : '<div class="noimg">사진 없음</div>';
-      return '<div class="side"><h3>'+nm+'의 '+esc(c)+' <span class="tag '+era+'">'+(era==="past"?"6차시":"5차시")+'</span></h3>'+img+
-             '<div>'+(r[era+"_content"] ? nl(r[era+"_content"]) : '<span class="src-note">아직 조사하지 않았어요.</span>')+'</div>'+
+      var nm = ERA_NAME[era], bl = blocksFromRow(r, era);
+      var body = blocksText(bl) || blocksPhotos(bl).length ? blocksView(bl) : '<span class="src-note">아직 조사하지 않았어요.</span>';
+      return '<div class="side"><h3>'+nm+'의 '+esc(c)+' <span class="tag '+era+'">'+(era==="past"?"6차시":"5차시")+'</span></h3>'+body+
              (r[era+"_source"] ? '<div class="src-note">출처: '+esc(r[era+"_source"])+'</div>' : '')+'</div>';
     }
     $("view").innerHTML =
@@ -862,7 +1019,7 @@ function whoText(){ return S.student.cls+" "+S.student.no+"번 "+S.student.name;
 function valuesFromRow(r){
   return {custom:r.custom, past:r.past_content||"", today:r.today_content||"", same:r.same_point||"", diff:r.diff_point||"",
           reason:r.reason||"", heart:r.heart||"", pastSrc:r.past_source||"", todaySrc:r.today_source||"",
-          pastImg:r.past_image||"", todayImg:r.today_image||"", pastCredit:r.past_image_credit||"", todayCredit:r.today_image_credit||""};
+          pastPhotos:blocksPhotos(blocksFromRow(r,"past")), todayPhotos:blocksPhotos(blocksFromRow(r,"today"))};
 }
 function cmpValues(){
   var v = valuesFromRow(S.record || {custom:S.custom});
@@ -870,18 +1027,32 @@ function cmpValues(){
   if ($("fSame")){ v.same=$("fSame").value.trim(); v.diff=$("fDiff").value.trim(); v.reason=$("fReason").value.trim(); v.heart=$("fHeart").value.trim(); }
   return v;
 }
+function blocksView(bl){
+  return '<div class="view-blocks">'+bl.map(function(b){
+    if (b.type === "photo") return '<figure><img src="'+esc(b.url)+'" alt="'+esc(b.caption||"조사 사진")+'">'+(b.caption ? '<figcaption>'+esc(b.caption)+'</figcaption>' : '')+'</figure>';
+    return b.text.trim() ? '<p class="vt">'+nl(b.text.trim())+'</p>' : '';
+  }).join("")+'</div>';
+}
 function cardHtml(v, who){
-  function half(cls, nm, img, txt){
-    return '<div class="'+cls+'"><b>'+nm+'</b>'+(img ? '<img src="'+esc(img)+'" crossorigin="anonymous" alt="'+nm+' 사진">' : '<div class="ni">사진 없음</div>')+nl(txt)+'</div>';
+  /* 카드에는 시대마다 사진을 2장까지 보여 줘요 */
+  function half(cls, nm, photos, txt){
+    var ph = (photos||[]).slice(0,2);
+    var pics = ph.length ? '<div class="ph n'+ph.length+'">'+ph.map(function(p){
+        return '<div><img src="'+esc(p.url)+'" crossorigin="anonymous" alt="'+esc(p.caption||nm+" 사진")+'">'+(p.caption ? '<small>'+esc(p.caption)+'</small>' : '')+'</div>';
+      }).join("")+'</div>' : '<div class="ni">사진 없음</div>';
+    return '<div class="'+cls+'"><b>'+nm+'</b>'+pics+nl(txt)+'</div>';
+  }
+  function credits(nm, photos){
+    return (photos||[]).filter(function(p){ return p.credit; }).map(function(p,i){ return '<br>'+nm+' 사진'+(photos.length>1?" "+(i+1):"")+': '+esc(p.credit); }).join("");
   }
   return '<div class="pcard"><div class="ttl">'+esc(v.custom)+' 풍습 비교 카드</div>'+
-    '<div class="two">'+half("p","옛날",v.pastImg,v.past)+half("t","오늘날",v.todayImg,v.today)+'</div>'+
+    '<div class="two">'+half("p","옛날",v.pastPhotos,v.past)+half("t","오늘날",v.todayPhotos,v.today)+'</div>'+
     '<div class="row"><b>같은 점</b><span>'+nl(v.same)+'</span></div>'+
     '<div class="row"><b>다른 점</b><span>'+nl(v.diff)+'</span></div>'+
     '<div class="row"><b>달라진 까닭</b><span>'+nl(v.reason)+'</span></div>'+
     '<div class="row"><b>이어지는 마음</b><span>'+nl(v.heart)+'</span></div>'+
     '<div class="foot">출처 · 옛날: '+esc(v.pastSrc)+' / 오늘날: '+esc(v.todaySrc)+
-      (v.pastCredit ? '<br>옛날 사진: '+esc(v.pastCredit) : '')+(v.todayCredit ? '<br>오늘날 사진: '+esc(v.todayCredit) : '')+
+      credits("옛날", v.pastPhotos.slice(0,2))+credits("오늘날", v.todayPhotos.slice(0,2))+
       (who ? '<br><b>'+esc(who)+'</b>' : '')+'</div></div>';
 }
 function drawPreview(){
@@ -892,7 +1063,7 @@ function drawPreview(){
 function drawCopyList(){
   if (!$("copyList")) return;
   var v = cmpValues();
-  var items = [["제목", v.custom+" 풍습 비교 카드"],["옛날 모습",v.past],["오늘날 모습",v.today],["같은 점",v.same],["다른 점",v.diff],
+  var items = [["제목", v.custom+" 풍습 비교 카드"],["옛날 모습",v.past],["옛날 사진 설명",v.pastPhotos.map(function(p){return p.caption;}).filter(Boolean).join("\n")],["오늘날 모습",v.today],["오늘날 사진 설명",v.todayPhotos.map(function(p){return p.caption;}).filter(Boolean).join("\n")],["같은 점",v.same],["다른 점",v.diff],
                ["달라진 까닭",v.reason],["이어지는 마음",v.heart],["출처","옛날: "+v.pastSrc+" / 오늘날: "+v.todaySrc],["만든 사람",whoText()]];
   var all = [];
   $("copyList").innerHTML = items.map(function(it){
@@ -902,7 +1073,7 @@ function drawCopyList(){
       all.push(s);
       return '<div class="sent"><span>'+esc(s)+'</span><button class="btn ghost xs" data-k="'+(all.length-1)+'">복사</button></div>';
     }).join("")+'</div>';
-  }).join("") + '<div class="src-note">사진은 위 카드의 사진을 길게 누르거나 오른쪽 클릭으로 저장해 캔바에 올려요.</div>';
+  }).join("") + '<div class="src-note">사진은 위쪽 조사 내용의 사진을 길게 누르거나 오른쪽 클릭으로 저장해 캔바에 올려요.</div>';
   each("#copyList [data-k]", function(b){ b.onclick = function(){ copyText(all[parseInt(b.getAttribute("data-k"),10)]); }; });
 }
 function saveCompare(){
@@ -1081,6 +1252,7 @@ function teacherUpload(input){
 
 /* ================= 시작 ================= */
 function init(){
+  window.addEventListener("beforeunload", function(e){ if (S.dirty){ e.preventDefault(); e.returnValue = ""; } });
   fillSelects();
   $("btnLogin").onclick = login;
   $("inName").onkeydown = function(e){ if (e.key==="Enter") login(); };
