@@ -169,7 +169,6 @@
   .blk .bar button{border:none;background:var(--paper2);border-radius:6px;padding:1px 8px;font-size:12px;color:var(--muted)}
   .blk textarea{border:none;padding:4px;resize:vertical}
   .blk.photo img{width:100%;max-height:280px;object-fit:contain;background:#f3eee4;border-radius:8px;display:block}
-  .blk .cap-in{width:100%;margin-top:6px;padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:14px}
   .blk .credit{font-size:11.5px;color:var(--muted);margin-top:4px;word-break:break-all}
   .view-blocks .vt{margin:6px 0}
   .view-blocks figure{margin:10px 0}
@@ -769,8 +768,7 @@ function drawBlocks(era){
     var tools = '<div class="bar">'+(i>0?'<button data-up="'+i+'" title="위로">↑</button>':'')+(i<bl.length-1?'<button data-down="'+i+'" title="아래로">↓</button>':'')+'<button data-del="'+i+'">지우기</button></div>';
     if (b.type === "photo"){
       h += '<div class="blk photo" data-bi="'+i+'">'+tools+
-           '<img src="'+esc(b.url)+'" alt="'+esc(b.caption||"조사 사진")+'">'+
-           '<input class="cap-in" data-cap="'+i+'" value="'+esc(b.caption||"")+'" placeholder="사진 설명을 써요 (예: 돌상 앞에서 돌잡이를 하는 아기)">'+
+           '<img src="'+esc(b.url)+'" alt="조사 사진">'+
            '<div class="credit">'+esc(b.credit||"")+'</div></div>';
     } else {
       h += '<div class="blk text" data-bi="'+i+'">'+tools+
@@ -784,10 +782,6 @@ function drawBlocks(era){
     var i = parseInt(t.getAttribute("data-txt"),10);
     t.oninput = function(){ S.blocks[era][i].text = t.value; markDirty(); };
     t.onfocus = function(){ S.lastText[era] = i; };
-  });
-  each("#blocks input[data-cap]", function(t){
-    var i = parseInt(t.getAttribute("data-cap"),10);
-    t.oninput = function(){ S.blocks[era][i].caption = t.value; markDirty(); };
   });
   each("#blocks [data-up]", function(b){ b.onclick = function(){ moveBlock(era, +b.getAttribute("data-up"), -1); }; });
   each("#blocks [data-down]", function(b){ b.onclick = function(){ moveBlock(era, +b.getAttribute("data-down"), 1); }; });
@@ -821,19 +815,22 @@ function delBlock(era, i){
   if (!bl.some(function(x){ return x.type === "text"; })) bl.push({type:"text", text:""});
   S.lastText[era] = null; S.insertAt[era] = null; markDirty(); drawBlocks(era);
 }
-/* 사진 넣기: 정한 자리(없으면 마지막 글 다음)에 넣어요 */
+/* 사진 넣기: 정한 자리(없으면 쓰던 글 다음)에 넣고, 바로 아래에 글상자를 붙여요.
+   돌려주는 값 = 다음 사진이 들어갈 자리 */
 function addPhoto(era, p){
-  var bl = S.blocks[era]; if (!bl) return;
-  if (bl.some(function(b){ return b.type==="photo" && b.url===p.url; })){ toast("이미 넣은 사진이에요."); return; }
-  if (blocksPhotos(bl).length >= MAX_PHOTOS){ toast("사진은 "+MAX_PHOTOS+"장까지 넣을 수 있어요."); return; }
+  var bl = S.blocks[era]; if (!bl) return null;
+  if (bl.some(function(b){ return b.type==="photo" && b.url===p.url; })){ toast("이미 넣은 사진이에요."); return null; }
+  if (blocksPhotos(bl).length >= MAX_PHOTOS){ toast("사진은 "+MAX_PHOTOS+"장까지 넣을 수 있어요."); return null; }
   var at = S.insertAt[era];
   if (at == null) at = S.lastText[era] != null ? S.lastText[era] + 1 : bl.length;
-  bl.splice(at, 0, {type:"photo", url:p.url, credit:p.credit||"", caption:""});
-  fixIndexes(era, at, 1);
-  S.insertAt[era] = null; markDirty(); drawBlocks(era);
-  var cap = document.querySelector('#blocks input[data-cap="'+at+'"]');
-  if (cap){ try{ cap.scrollIntoView({block:"center", behavior:"smooth"}); cap.focus({preventScroll:true}); }catch(e){} }
-  toast("사진을 넣었어요. 사진 설명을 써 보세요.");
+  bl.splice(at, 0, {type:"photo", url:p.url, credit:p.credit||""});
+  var next = bl[at+1], textAt = at + 1;
+  if (!(next && next.type === "text" && !next.text.trim())) bl.splice(textAt, 0, {type:"text", text:""});
+  S.insertAt[era] = null; S.lastText[era] = textAt;
+  markDirty(); drawBlocks(era);
+  var t = document.querySelector('#blocks textarea[data-txt="'+textAt+'"]');
+  if (t){ try{ t.scrollIntoView({block:"center", behavior:"smooth"}); t.focus({preventScroll:true}); }catch(e){} }
+  return textAt + 1;
 }
 /* 문장 틀은 마지막으로 쓰던 글 칸에 넣어요 */
 function insertIntoText(era, txt){
@@ -880,13 +877,12 @@ function studentUpload(input, era){
   files.forEach(function(file){
     chain = chain.then(function(){
       return uploadImage(file, "students/"+folderKey(S.student.cls)+"-"+S.student.no).then(function(r){
-        var keep = S.insertAt[era];
-        addPhoto(era, {url:r.url, credit:"직접 올린 사진 (출처 칸에 사진을 찾은 곳을 적어요)"});
-        if (keep != null) S.insertAt[era] = keep + 1;   // 여러 장이면 차례대로 이어서 넣기
+        var nextAt = addPhoto(era, {url:r.url, credit:"직접 올린 사진 (출처 칸에 사진을 찾은 곳을 적어요)"});
+        if (nextAt != null) S.insertAt[era] = nextAt;   // 여러 장이면 차례대로 이어서 넣기
       }).catch(function(e){ toast(e.message || "사진을 올리지 못했어요."); });
     });
   });
-  chain.then(function(){ S.insertAt[era] = null; drawBlocks(era); toast("사진을 올렸어요. 저장하기를 눌러요."); });
+  chain.then(function(){ S.insertAt[era] = null; drawBlocks(era); toast("사진을 올렸어요. 사진 아래에 알게 된 내용을 써요."); });
 }
 function markImgs(era){
   var used = blocksPhotos(S.blocks[era]).map(function(b){ return b.url; });
@@ -948,14 +944,12 @@ function questionHelp(){
 function contentHelp(era){
   var bl = S.blocks[era] || [];
   var t = blocksText(bl);
-  var caps = blocksPhotos(bl).map(function(b){ return b.caption; }).filter(Boolean);
   if (!t){ $("cHelpArea").innerHTML = '<div class="answer">먼저 한두 문장이라도 써 보세요. 위의 문장 틀을 눌러 시작해도 좋아요.</div>'; return; }
   aiInto("cHelpArea", "너는 초등학교 3학년 학생의 조사 글쓰기를 돕는 선생님이야.\n"+
     "풍습: 우리나라 '"+S.custom+"' ("+ERA_NAME[era]+" 모습)\n학생이 쓴 조사 내용: "+t+"\n"+
-    "넣은 사진 수: "+blocksPhotos(bl).length+"장"+(caps.length ? ", 학생이 쓴 사진 설명: "+caps.join(" / ") : "")+"\n\n"+
+    "\n"+
     "다음 순서로 답해.\n1) 잘한 점 한 문장.\n2) 모습과 담긴 뜻이 모두 들어 있는지 확인하고, 빠진 것이 있으면 무엇을 더 쓰면 좋을지 질문 1개.\n"+
     "3) 맞춤법이 틀리거나 어색한 곳이 있으면 '○○ → ○○' 모양으로 2개까지만.\n"+
-    "- 사진이 있는데 사진 설명이 없으면 사진 설명을 써 보라고 한 문장으로 알려 줘.\n"+
     "- 학생 글을 대신 다시 써 주지 마.\n- 사실과 다른 내용이 있으면 '이 부분은 다시 확인해 보세요'라고만 알려 줘.\n- 쉬운 말, 전체 5문장 이내.");
 }
 
@@ -1063,7 +1057,7 @@ function drawPreview(){
 function drawCopyList(){
   if (!$("copyList")) return;
   var v = cmpValues();
-  var items = [["제목", v.custom+" 풍습 비교 카드"],["옛날 모습",v.past],["옛날 사진 설명",v.pastPhotos.map(function(p){return p.caption;}).filter(Boolean).join("\n")],["오늘날 모습",v.today],["오늘날 사진 설명",v.todayPhotos.map(function(p){return p.caption;}).filter(Boolean).join("\n")],["같은 점",v.same],["다른 점",v.diff],
+  var items = [["제목", v.custom+" 풍습 비교 카드"],["옛날 모습",v.past],["오늘날 모습",v.today],["같은 점",v.same],["다른 점",v.diff],
                ["달라진 까닭",v.reason],["이어지는 마음",v.heart],["출처","옛날: "+v.pastSrc+" / 오늘날: "+v.todaySrc],["만든 사람",whoText()]];
   var all = [];
   $("copyList").innerHTML = items.map(function(it){
