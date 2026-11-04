@@ -241,6 +241,18 @@
   .cmt .rbox input{flex:1;min-width:0;padding:6px 10px;border:2px solid var(--line);border-radius:10px;background:#fff;font-size:14px}
   .cform label.f{margin-top:6px}
   .cform textarea{font-size:15px}
+  .nudge{background:var(--gold-soft);border:2px solid #e8cf94;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:15px}
+  .nudge .actions{margin-top:8px}
+  .cmt .star{color:var(--gold);font-weight:800}
+  .mystat{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .mystat span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:14px}
+  .mystat b{font-size:16px}
+  table.tstat{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;margin-top:10px}
+  .tstat th,.tstat td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center;font-size:15px}
+  .tstat th{background:var(--ink);color:#fff;font-weight:600}
+  .tstat td.l{text-align:left}
+  .tstat tr.top td{background:var(--gold-soft)}
+  .tstat .zero{color:#c9bca5}
   .tcm{display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:520px;overflow:auto}
   .tcm .cmt .hd .del{color:var(--red)}
 </style>
@@ -1204,6 +1216,7 @@ function renderBoard(){
       '<div class="bhead"><div><h3>'+esc(S.student.cls.replace("3-","3학년 "))+'반 풍습 비교 카드</h3>'+
       '<div class="src-note">카드를 누르면 크게 볼 수 있어요. 친구 카드에 <b>칭찬 1 + 질문 1</b> 댓글과 ♥를 남겨요.</div></div>'+
       '<div class="mine-stat" id="mineStat"></div></div>'+
+      '<div class="mystat" id="myWrite"></div>'+
       '<div class="btools"><span id="bFilter"></span>'+
         '<div class="seg" id="bSort"><button data-s="custom">풍습별</button><button data-s="few">댓글 적은 순</button><button data-s="new">새로 올라온 순</button></div>'+
         '<button class="btn ghost sm" id="btnRefresh">새로 고침</button></div>'+
@@ -1247,6 +1260,7 @@ function drawBoard(){
   var myC = 0, myL = 0;
   mine.forEach(function(r){ myC += cmtsOf(r.id).length; myL += likesOf(r.id).length; });
   $("mineStat").innerHTML = mine.length ? '내 카드 ♥ <b>'+myL+'</b> · 💬 <b>'+myC+'</b>' : '아직 내 카드가 없어요';
+  drawMyWrite();
   /* 풍습 거르기 */
   var present = [];
   B.rows.forEach(function(r){ if (present.indexOf(r.custom) < 0) present.push(r.custom); });
@@ -1279,6 +1293,25 @@ function drawBoard(){
   }
   $("boardArea").innerHTML = h;
   each("#boardArea .bcard", function(el){ el.onclick = function(){ openCard(el.getAttribute("data-id")); }; });
+}
+/* 내가 쓴 댓글 개수 */
+function isFull(c){ return !!(String(c.praise||"").trim() && String(c.question||"").trim()); }
+function writeStats(list){
+  var st = {praise:0, question:0, full:0, cards:{}};
+  list.forEach(function(c){
+    if (String(c.praise||"").trim()) st.praise++;
+    if (String(c.question||"").trim()) st.question++;
+    if (isFull(c)) st.full++;
+    st.cards[c.card_id] = 1;
+  });
+  st.cardCount = Object.keys(st.cards).length;
+  return st;
+}
+function drawMyWrite(){
+  var el = $("myWrite"); if (!el) return;
+  var st = writeStats(B.comments.filter(function(c){ return c.author_no === S.student.no; }));
+  el.innerHTML = '<span>내가 쓴 👍 칭찬 <b>'+st.praise+'</b></span><span>❓ 질문 <b>'+st.question+'</b></span>'+
+                 '<span>⭐ 칭찬+질문 함께 <b>'+st.full+'</b></span><span>댓글 단 친구 카드 <b>'+st.cardCount+'</b>장</span>';
 }
 function tileHtml(r){
   var past = blocksPhotos(blocksFromRow(r,"past"))[0], today = blocksPhotos(blocksFromRow(r,"today"))[0];
@@ -1342,7 +1375,8 @@ function drawDetailSide(){
          '<textarea id="cPraise" rows="2" maxlength="300" placeholder="예) 사진과 출처를 꼼꼼히 넣어서 옛날과 오늘날이 한눈에 비교돼요!"></textarea>'+
          '<label class="f">❓ 질문 1 <small>더 알고 싶은 것을 물어봐요</small></label>'+
          '<textarea id="cQuestion" rows="2" maxlength="300" placeholder="예) 오늘날에도 집에서 돌잔치를 하는 가족이 있을까요?"></textarea>'+
-         '<div class="actions" style="margin-top:10px"><button class="btn red" id="btnCmt">댓글 남기기</button></div></div>';
+         '<div class="actions" style="margin-top:10px"><button class="btn red" id="btnCmt">댓글 남기기</button><span class="src-note">⭐ 칭찬과 질문을 함께 쓰면 별이 붙어요</span></div>'+
+         '<div id="nudge"></div></div>';
   }
   el.innerHTML = h;
   if ($("cPraise")){ $("cPraise").value = keep.p; $("cQuestion").value = keep.q; }
@@ -1356,7 +1390,7 @@ function drawDetailSide(){
 function fmtTime(t){ try{ return new Date(t).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}); }catch(e){ return ""; } }
 function cmtHtml(c, r){
   var mineCard = isMine(r), myCmt = c.author_no === S.student.no;
-  var h = '<div class="cmt"><div class="hd"><b>'+c.author_no+'번 '+esc(c.author_name)+'</b><span>'+fmtTime(c.created_at)+'</span>'+
+  var h = '<div class="cmt"><div class="hd"><b>'+c.author_no+'번 '+esc(c.author_name)+'</b>'+(isFull(c) ? '<span class="star" title="칭찬과 질문을 함께 쓴 댓글">⭐</span>' : '')+'<span>'+fmtTime(c.created_at)+'</span>'+
           (myCmt ? '<button class="del" data-del="'+c.id+'">지우기</button>' : '')+'</div>';
   if (c.praise) h += '<div class="pr"><span>👍 칭찬</span><span>'+nl(c.praise)+'</span></div>';
   if (c.question) h += '<div class="qu"><span>❓ 질문</span><span>'+nl(c.question)+'</span></div>';
@@ -1364,17 +1398,25 @@ function cmtHtml(c, r){
   else if (mineCard) h += '<div class="rbox"><input id="rp'+c.id+'" maxlength="300" placeholder="답글을 써요"><button class="btn green sm" data-reply="'+c.id+'">답글 달기</button></div>';
   return h + '</div>';
 }
-function postComment(r){
+function postComment(r, force){
   var p = $("cPraise").value.trim(), q = $("cQuestion").value.trim();
-  if (!p){ toast("칭찬을 먼저 써요."); $("cPraise").focus(); return; }
-  if (!q){ toast("질문도 하나 써요."); $("cQuestion").focus(); return; }
+  if (!p && !q){ toast("칭찬이나 질문을 먼저 써요."); $("cPraise").focus(); return; }
+  /* 한 칸만 썼으면 한 번만 권하고, 그래도 올리고 싶으면 올려요 */
+  if (!force && (!p || !q)){
+    var miss = !q ? "질문" : "칭찬";
+    $("nudge").innerHTML = '<div class="nudge">'+(miss === "질문" ? "❓ 질문도 하나 써 볼까요? 친구가 답글로 대답해 줄 수 있어요." : "👍 칭찬도 하나 써 볼까요? 친구가 힘이 날 거예요.")+
+      '<div class="actions"><button class="btn sm" id="nMore">'+miss+' 더 쓰기</button><button class="btn ghost sm" id="nGo">이대로 올리기</button></div></div>';
+    $("nMore").onclick = function(){ $("nudge").innerHTML = ""; $(miss === "질문" ? "cQuestion" : "cPraise").focus(); };
+    $("nGo").onclick = function(){ $("nudge").innerHTML = ""; postComment(r, true); };
+    return;
+  }
   var b = $("btnCmt"); b.disabled = true; b.textContent = "올리는 중…";
   sb(CMT_TABLE, {method:"POST", body:[{card_id:r.id, class_code:S.student.cls, author_no:S.student.no, author_name:S.student.name, praise:p, question:q}], prefer:"return=representation"})
     .then(function(rows){
       if (rows && rows[0]) B.comments.push(rows[0]);
       $("cPraise").value = ""; $("cQuestion").value = "";
-      toast("댓글을 남겼어요!");
-      drawDetailSide();
+      toast(p && q ? "⭐ 칭찬과 질문을 함께 남겼어요!" : "댓글을 남겼어요!");
+      drawDetailSide(); drawMyWrite();
       var l = $("clist"); if (l) l.scrollTop = l.scrollHeight;
     })
     .catch(function(){ toast("댓글을 남기지 못했어요. 다시 눌러 보세요."); b.disabled = false; b.textContent = "댓글 남기기"; });
@@ -1391,7 +1433,7 @@ function postReply(id, text){
 function deleteComment(id){
   if (!confirm("내 댓글을 지울까요?")) return;
   sb(CMT_TABLE+"?id=eq."+id+"&author_no=eq."+S.student.no, {method:"DELETE"})
-    .then(function(){ B.comments = B.comments.filter(function(c){ return c.id !== id; }); toast("지웠어요."); drawDetailSide(); })
+    .then(function(){ B.comments = B.comments.filter(function(c){ return c.id !== id; }); toast("지웠어요."); drawDetailSide(); drawMyWrite(); })
     .catch(function(){ toast("지우지 못했어요."); });
 }
 function toggleLike(r){
@@ -1408,7 +1450,7 @@ function toggleLike(r){
 }
 
 /* ================= 선생님 메뉴: 풍습별 사진 관리 ================= */
-var T = {custom:"출생", era:"past", cls:"3-5"};
+var T = {custom:"출생", era:"past", cls:"3-5", statSort:"no", statData:null};
 function teacherLogin(){
   var pw = prompt("선생님 비밀번호를 입력하세요.");
   if (pw === null) return;
@@ -1443,8 +1485,13 @@ function renderTeacher(){
       '<div id="tList" style="margin-top:14px"><span class="spin"></span></div>'+
     '</div>'+
     '<div class="card" style="margin-top:16px">'+
-      '<h3>우리 반 모아보기 댓글 관리 <select id="tCls" class="inp" style="width:auto;margin-left:auto;padding:6px 10px"></select></h3>'+
-      '<p class="src-note">학생들이 남긴 댓글을 최근 순서로 보여 줘요. 알맞지 않은 댓글은 삭제할 수 있어요.</p>'+
+      '<h3>우리 반 모아보기 댓글 <select id="tCls" class="inp" style="width:auto;margin-left:auto;padding:6px 10px"></select><button class="btn ghost sm" id="tCmtRefresh">새로 고침</button></h3>'+
+      '<h4 class="sub">학생별 댓글 수</h4>'+
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="seg" id="tStatSort"><button data-s="no">번호순</button><button data-s="many">많이 쓴 순</button></div>'+
+      '<span class="src-note">카드를 만들었거나 댓글을 쓴 학생만 보여요. 노란 줄은 댓글을 가장 많이 쓴 학생이에요.</span></div>'+
+      '<div id="tStat"><span class="spin"></span></div>'+
+      '<h4 class="sub">댓글 관리</h4>'+
+      '<p class="src-note">최근 댓글부터 보여 줘요. 알맞지 않은 댓글은 삭제할 수 있어요.</p>'+
       '<div id="tCmts" class="tcm"><span class="spin"></span></div>'+
     '</div>';
   each("#teacher .chip", function(b){ b.onclick = function(){ T.custom = b.getAttribute("data-c"); renderTeacher(); }; });
@@ -1457,20 +1504,24 @@ function renderTeacher(){
   var opts = ""; for (var i=1;i<=6;i++) opts += '<option value="3-'+i+'">3학년 '+i+'반</option>';
   $("tCls").innerHTML = opts; $("tCls").value = T.cls || "3-5";
   $("tCls").onchange = function(){ T.cls = this.value; drawTeacherComments(); };
+  $("tCmtRefresh").onclick = drawTeacherComments;
+  each("#tStatSort button", function(b){ b.onclick = function(){ T.statSort = b.getAttribute("data-s"); drawTeacherStats(); }; });
   drawTeacherComments();
 }
 function drawTeacherComments(){
   var cls = $("tCls").value, enc = encodeURIComponent(cls);
   Promise.all([
-    sb(CMT_TABLE+"?class_code=eq."+enc+"&select=*&order=created_at.desc&limit=300"),
+    sb(CMT_TABLE+"?class_code=eq."+enc+"&select=*&order=created_at.desc&limit=1000"),
     sb(TABLE+"?class_code=eq."+enc+"&select=id,student_no,student_name,custom")
   ]).then(function(r){
     var cards = {}; (r[1]||[]).forEach(function(c){ cards[c.id] = c; });
     var list = r[0]||[];
+    T.statData = {comments:list, cards:r[1]||[]};
+    drawTeacherStats();
     if (!list.length){ $("tCmts").innerHTML = '<div class="empty" style="padding:20px">아직 댓글이 없어요.</div>'; return; }
     $("tCmts").innerHTML = list.map(function(c){
       var card = cards[c.card_id] || {};
-      return '<div class="cmt"><div class="hd"><b>'+c.author_no+'번 '+esc(c.author_name)+'</b><span>→ '+(card.student_no||"?")+'번 '+esc(card.student_name||"")+'의 '+esc(card.custom||"")+' 카드 · '+fmtTime(c.created_at)+'</span>'+
+      return '<div class="cmt"><div class="hd"><b>'+c.author_no+'번 '+esc(c.author_name)+'</b>'+(isFull(c) ? '<span class="star">⭐</span>' : '')+'<span>→ '+(card.student_no||"?")+'번 '+esc(card.student_name||"")+'의 '+esc(card.custom||"")+' 카드 · '+fmtTime(c.created_at)+'</span>'+
              '<button class="del" data-tdel="'+c.id+'">삭제</button></div>'+
              (c.praise ? '<div class="pr"><span>👍 칭찬</span><span>'+nl(c.praise)+'</span></div>' : '')+
              (c.question ? '<div class="qu"><span>❓ 질문</span><span>'+nl(c.question)+'</span></div>' : '')+
@@ -1484,7 +1535,33 @@ function drawTeacherComments(){
           .catch(function(){ toast("삭제하지 못했어요."); });
       };
     });
-  }).catch(function(){ $("tCmts").innerHTML = '<div class="empty" style="padding:20px">불러오지 못했어요.</div>'; });
+  }).catch(function(){ $("tCmts").innerHTML = '<div class="empty" style="padding:20px">불러오지 못했어요.</div>'; $("tStat").innerHTML = ""; });
+}
+/* 학생별 칭찬·질문 개수 */
+function drawTeacherStats(){
+  var el = $("tStat"), d = T.statData; if (!el || !d) return;
+  each("#tStatSort button", function(b){ b.classList.toggle("on", b.getAttribute("data-s") === (T.statSort||"no")); });
+  var people = {}, owner = {};
+  function who(no, name){ var k = String(no); if (!people[k]) people[k] = {no:no, name:name||"", list:[], got:0, cards:0}; if (name && !people[k].name) people[k].name = name; return people[k]; }
+  d.cards.forEach(function(c){ who(c.student_no, c.student_name).cards++; owner[c.id] = c.student_no; });
+  d.comments.forEach(function(c){
+    who(c.author_no, c.author_name).list.push(c);
+    if (owner[c.card_id] != null) who(owner[c.card_id]).got++;
+  });
+  var rows = Object.keys(people).map(function(k){ var p = people[k]; p.st = writeStats(p.list); p.total = p.list.length; return p; });
+  if (!rows.length){ el.innerHTML = '<div class="empty" style="padding:20px">아직 기록이 없어요.</div>'; return; }
+  var max = Math.max.apply(null, rows.map(function(p){ return p.total; }));
+  rows.sort((T.statSort||"no") === "many"
+    ? function(a,b){ return b.total-a.total || b.st.full-a.st.full || a.no-b.no; }
+    : function(a,b){ return a.no-b.no; });
+  function n(v){ return v ? v : '<span class="zero">0</span>'; }
+  var sum = {p:0,q:0,f:0}; rows.forEach(function(p){ sum.p += p.st.praise; sum.q += p.st.question; sum.f += p.st.full; });
+  el.innerHTML = '<table class="tstat"><thead><tr><th>번호</th><th>이름</th><th>👍 칭찬</th><th>❓ 질문</th><th>⭐ 함께</th><th>댓글 단 카드</th><th>받은 댓글</th></tr></thead><tbody>'+
+    rows.map(function(p){
+      return '<tr'+(max > 0 && p.total === max ? ' class="top"' : '')+'><td>'+p.no+'</td><td class="l">'+esc(p.name)+(p.cards ? '' : ' <span class="src-note">(카드 없음)</span>')+'</td>'+
+             '<td>'+n(p.st.praise)+'</td><td>'+n(p.st.question)+'</td><td>'+n(p.st.full)+'</td><td>'+n(p.st.cardCount)+'</td><td>'+n(p.got)+'</td></tr>';
+    }).join("")+
+    '</tbody></table><div class="src-note" style="margin-top:6px">반 전체: 👍 칭찬 '+sum.p+'개 · ❓ 질문 '+sum.q+'개 · ⭐ 함께 '+sum.f+'개</div>';
 }
 function drawOpenSwitches(){
   getCompareOpen().then(function(map){
